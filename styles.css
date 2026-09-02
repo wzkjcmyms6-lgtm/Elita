@@ -403,21 +403,33 @@ h2 {
   font-size: 0.88em;
 }
 
+.semana-bloqueada {
+  background: var(--tarjeta);
+  border-radius: 16px;
+  box-shadow: 0 4px 18px rgba(30,43,40,0.06);
+  padding: 16px;
+  opacity: 0.7;
+}
+
+.semana-bloqueada-fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-weight: 700;
+}
+
+.semana-bloqueada-ayuda {
+  margin: 6px 0 0;
+  color: var(--texto-suave);
+  font-size: 0.85em;
+}
+
 .semana-cuerpo {
   padding: 0 14px 14px;
   display: flex;
   flex-direction: column;
   gap: 10px;
-}
-
-.select-semana {
-  font-family: inherit;
-  font-size: 1em;
-  padding: 12px;
-  border: 2px solid var(--borde);
-  border-radius: 12px;
-  background: var(--tarjeta);
-  color: var(--texto);
 }
 
 /* ---------- Anillo de hoy ---------- */
@@ -721,42 +733,6 @@ h2 {
 }
 
 .cal-celda.hoy { border: 2px solid var(--coral); }
-
-/* ---------- Formularios ---------- */
-.form-ejercicio {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  background: var(--tarjeta);
-  border-radius: 18px;
-  padding: 16px;
-  box-shadow: 0 4px 18px rgba(30,43,40,0.06);
-}
-
-.form-ejercicio input {
-  font-family: inherit;
-  font-size: 1em;
-  padding: 12px;
-  border: 2px solid var(--borde);
-  border-radius: 12px;
-  min-width: 0;
-}
-
-.fila-doble { display: flex; gap: 10px; }
-.fila-doble input { flex: 1; min-width: 0; }
-
-.sugerencias { display: flex; flex-wrap: wrap; gap: 8px; }
-
-.sugerencia-chip {
-  background: var(--coral-suave);
-  border: none;
-  color: #c96536;
-  padding: 9px 14px;
-  border-radius: 999px;
-  font-size: 0.88em;
-  font-weight: 700;
-  cursor: pointer;
-}
 
 .gestion-card {
   background: var(--tarjeta);

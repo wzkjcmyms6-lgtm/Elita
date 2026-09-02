@@ -323,8 +323,6 @@ function iniciarApp(id) {
     day: "numeric",
     month: "long",
   });
-  document.getElementById("semana-destino").value = String(semanaActual);
-  renderSugerencias();
   renderTodo();
 }
 
@@ -426,27 +424,29 @@ function renderHoy() {
   renderGraficoSemana("semana-grafico");
 }
 
-function contarCompletadosAlgunaVez(lista) {
-  const completados = new Set();
-  Object.values(registro).forEach((ids) => ids.forEach((id) => completados.add(id)));
-  return lista.filter((ej) => clavesSerie(ej).every((clave) => completados.has(clave))).length;
+const META_DIAS_SEMANA = 5;
+
+function diaCompletoParaLista(lista, hechosEseDia) {
+  return lista.length > 0 && lista.every((ej) => clavesSerie(ej).every((clave) => hechosEseDia.includes(clave)));
+}
+
+function contarDiasCompletosSemana(lista) {
+  return Object.values(registro).filter((idsDelDia) => diaCompletoParaLista(lista, idsDelDia)).length;
 }
 
 function verificarProgresionSemana() {
   const lista = semanas[semanaActual] || [];
   if (lista.length === 0) return;
-  if (contarCompletadosAlgunaVez(lista) < lista.length) return;
+  if (contarDiasCompletosSemana(lista) < META_DIAS_SEMANA) return;
 
   if (semanaActual < 4) {
     const completada = semanaActual;
     semanaActual++;
     guardarSemanaActual();
-    document.getElementById("semana-destino").value = String(semanaActual);
     alert(`¡Felicitaciones! Completaste la Semana ${completada}. Ahora te toca la Semana ${semanaActual} 💪`);
   } else {
     semanaActual = 1;
     guardarSemanaActual();
-    document.getElementById("semana-destino").value = String(semanaActual);
     alert("¡Felicitaciones! Completaste las 4 semanas de rutina. ¡Volvés a empezar en la Semana 1! 🎉");
   }
 }
@@ -626,60 +626,7 @@ document.getElementById("mes-siguiente").addEventListener("click", () => {
   renderCalendarioEn("calendario", "mes-actual");
 });
 
-// --- Pestaña Ejercicios ---
-const SUGERENCIAS = [
-  { nombre: "Yoga", detalle: "1x15" },
-  { nombre: "Bicicleta", detalle: "1x20" },
-  { nombre: "Pesas ligeras", detalle: "3x12" },
-  { nombre: "Equilibrio", detalle: "2x10 seg" },
-  { nombre: "Respiración", detalle: "1x10" },
-  { nombre: "Natación", detalle: "1x20" },
-];
-
-function renderSugerencias() {
-  const contenedor = document.getElementById("sugerencias");
-  contenedor.innerHTML = "";
-  SUGERENCIAS.forEach((s) => {
-    const chip = document.createElement("button");
-    chip.type = "button";
-    chip.className = "sugerencia-chip";
-    chip.textContent = `+ ${s.nombre}`;
-    chip.addEventListener("click", () => {
-      const semanaDestino = Number(document.getElementById("semana-destino").value);
-      const categoria = document.getElementById("categoria-ejercicio").value;
-      agregarEjercicio(s.nombre, s.detalle, categoria, semanaDestino);
-    });
-    contenedor.appendChild(chip);
-  });
-}
-
-function agregarEjercicio(nombre, detalle, categoria, semanaDestino) {
-  if (!semanas[semanaDestino]) semanas[semanaDestino] = [];
-  semanas[semanaDestino].push({
-    id: crypto.randomUUID(),
-    nombre: nombre.trim(),
-    detalle: detalle.trim(),
-    categoria: categoria || "principal",
-  });
-  guardarSemanas();
-  renderTodo();
-  const acordeon = document.querySelector(`.semana-acordeon[data-semana="${semanaDestino}"]`);
-  if (acordeon) acordeon.open = true;
-}
-
-document.getElementById("form-ejercicio").addEventListener("submit", (e) => {
-  e.preventDefault();
-  const nombre = document.getElementById("nombre-ejercicio").value;
-  const detalle = document.getElementById("detalle-ejercicio").value;
-  const categoria = document.getElementById("categoria-ejercicio").value;
-  const semanaDestino = Number(document.getElementById("semana-destino").value);
-  if (!nombre.trim() || !detalle.trim()) return;
-  agregarEjercicio(nombre, detalle, categoria, semanaDestino);
-  e.target.reset();
-  document.getElementById("semana-destino").value = String(semanaDestino);
-  document.getElementById("categoria-ejercicio").value = "principal";
-});
-
+// --- Pestaña Semanas ---
 function renderSemanas() {
   const contenedor = document.getElementById("lista-semanas");
   const abiertasAntes = new Set(
@@ -689,7 +636,22 @@ function renderSemanas() {
 
   for (let n = 1; n <= 4; n++) {
     const lista = semanas[n] || [];
-    const completados = contarCompletadosAlgunaVez(lista);
+
+    if (n > semanaActual) {
+      const bloqueada = document.createElement("div");
+      bloqueada.className = "semana-bloqueada";
+      bloqueada.innerHTML = `
+        <div class="semana-bloqueada-fila">
+          <span>Semana ${n}</span>
+          <span aria-hidden="true">🔒</span>
+        </div>
+        <p class="semana-bloqueada-ayuda">Completá la Semana ${n - 1} durante ${META_DIAS_SEMANA} días para desbloquearla.</p>
+      `;
+      contenedor.appendChild(bloqueada);
+      continue;
+    }
+
+    const diasCompletos = contarDiasCompletosSemana(lista);
 
     const detalle = document.createElement("details");
     detalle.className = "semana-acordeon";
@@ -699,7 +661,7 @@ function renderSemanas() {
     detalle.innerHTML = `
       <summary class="semana-resumen">
         <span class="semana-nombre">Semana ${n}${n === semanaActual ? '<span class="semana-badge">Actual</span>' : ""}</span>
-        <span class="semana-progreso">${completados}/${lista.length}</span>
+        <span class="semana-progreso">${diasCompletos}/${META_DIAS_SEMANA} días</span>
       </summary>
       <div class="semana-cuerpo"></div>
     `;
