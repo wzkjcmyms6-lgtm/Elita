@@ -38,7 +38,9 @@ let firestoreSetDoc = null;
 
 function sincronizarANube() {
   if (!docElita || !firestoreSetDoc) return;
-  firestoreSetDoc(docElita, { semanas, semanaActual, registro, cronometros }, { merge: true }).catch(() => {});
+  // Sin merge: siempre mandamos el estado local completo, así una eliminación
+  // (por ejemplo, borrar la sesión de un día) también se refleja en la nube.
+  firestoreSetDoc(docElita, { semanas, semanaActual, registro, cronometros }).catch(() => {});
 }
 
 function aplicarDatosRemotos(datos) {
@@ -995,7 +997,7 @@ function renderTodo() {
 
 // --- App de Juan Manolo (solo lectura del progreso de Elita) ---
 function iniciarJuan() {
-  asegurarPerfilElita();
+  perfilActivo = asegurarPerfilElita();
   semanas = cargarSemanasDe(ID_ELITA);
   registro = cargarRegistroDe(ID_ELITA);
   cronometros = cargarCronometrosDe(ID_ELITA);
@@ -1042,6 +1044,22 @@ document.getElementById("jn-mes-siguiente").addEventListener("click", () => {
   renderCalendarioEn("jn-calendario", "jn-mes-actual");
 });
 
+function eliminarSesionDia(iso, fechaTexto) {
+  if (!confirm(`¿Eliminar la sesión del ${fechaTexto}? Se borran los ejercicios marcados y el tiempo de ese día.`)) return;
+  delete registro[iso];
+  delete cronometros[iso];
+  guardarRegistro(registro);
+  guardarCronometros(cronometros);
+  renderHistorial();
+}
+
+function reiniciarCronometroDia(iso, fechaTexto) {
+  if (!confirm(`¿Reiniciar el cronómetro del ${fechaTexto}? Los ejercicios marcados ese día no se van a borrar.`)) return;
+  delete cronometros[iso];
+  guardarCronometros(cronometros);
+  renderHistorial();
+}
+
 function renderHistorial() {
   const contenedor = document.getElementById("jn-historial");
   const vacio = document.getElementById("jn-historial-vacio");
@@ -1080,8 +1098,17 @@ function renderHistorial() {
         <span class="ejercicio-nombre">${escapeHtml(fechaTexto)}</span>
         <span class="ejercicio-detalle">${escapeHtml(nombres.join(", "))}</span>
         ${duracionTexto ? `<span class="ejercicio-detalle">⏱️ ${duracionTexto}${cronDia.fin ? "" : " (en curso)"}</span>` : ""}
+        <div class="historial-acciones">
+          ${cronDia ? `<button type="button" class="reiniciar-cron-btn">↺ Reiniciar cronómetro</button>` : ""}
+          <button type="button" class="eliminar-sesion-btn">🗑 Eliminar sesión</button>
+        </div>
       </div>
     `;
+    const btnReiniciar = card.querySelector(".reiniciar-cron-btn");
+    if (btnReiniciar) {
+      btnReiniciar.addEventListener("click", () => reiniciarCronometroDia(iso, fechaTexto));
+    }
+    card.querySelector(".eliminar-sesion-btn").addEventListener("click", () => eliminarSesionDia(iso, fechaTexto));
     contenedor.appendChild(card);
   });
 }
