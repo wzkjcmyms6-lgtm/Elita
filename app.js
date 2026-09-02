@@ -85,6 +85,92 @@ const CLAVE_JUAN = "1925";
 const CLAVE_PERFILES = "mis-ejercicios-perfiles";
 const CLAVE_PERFIL_ACTIVO = "mis-ejercicios-perfil-activo";
 
+// --- Versículo del día ---
+const VERSICULOS = [
+  { cita: "Jeremías 29:11", texto: "Porque yo sé los planes que tengo para vosotros, planes de bienestar y no de calamidad, para daros un futuro y una esperanza." },
+  { cita: "Romanos 15:13", texto: "Que el Dios de esperanza os llene de todo gozo y paz en el creer, para que abundéis en esperanza." },
+  { cita: "Salmos 42:11", texto: "Espera en Dios; porque aún he de alabarle, salvación mía y Dios mío." },
+  { cita: "Isaías 40:31", texto: "Los que esperan a Jehová tendrán nuevas fuerzas; levantarán alas como las águilas." },
+  { cita: "Romanos 8:28", texto: "Sabemos que a los que aman a Dios todas las cosas les ayudan a bien." },
+  { cita: "Lamentaciones 3:22-23", texto: "Sus misericordias... nuevas son cada mañana; grande es tu fidelidad." },
+  { cita: "Hebreos 11:1", texto: "Es, pues, la fe la certeza de lo que se espera, la convicción de lo que no se ve." },
+  { cita: "Salmos 30:5", texto: "Por la noche durará el lloro, y a la mañana vendrá la alegría." },
+  { cita: "Proverbios 23:18", texto: "Porque hay fin, y tu esperanza no será cortada." },
+  { cita: "Romanos 5:5", texto: "Y la esperanza no avergüenza." },
+  { cita: "1 Corintios 13:4-7", texto: "El amor es sufrido, es benigno... todo lo sufre, todo lo cree, todo lo espera, todo lo soporta." },
+  { cita: "Juan 3:16", texto: "Porque de tal manera amó Dios al mundo, que ha dado a su Hijo unigénito." },
+  { cita: "1 Juan 4:19", texto: "Nosotros le amamos a él, porque él nos amó primero." },
+  { cita: "Juan 13:34", texto: "Que os améis unos a otros; como yo os he amado." },
+  { cita: "1 Juan 4:7", texto: "Amémonos unos a otros; porque el amor es de Dios." },
+  { cita: "Colosenses 3:14", texto: "Sobre todas estas cosas vestíos de amor, que es el vínculo perfecto." },
+  { cita: "1 Corintios 16:14", texto: "Todas vuestras cosas sean hechas con amor." },
+  { cita: "Romanos 8:38-39", texto: "Nada nos podrá separar del amor de Dios." },
+  { cita: "1 Pedro 4:8", texto: "El amor cubrirá multitud de pecados." },
+  { cita: "Cantares 8:7", texto: "Las muchas aguas no podrán apagar el amor." },
+  { cita: "Filipenses 4:13", texto: "Todo lo puedo en Cristo que me fortalece." },
+  { cita: "Josué 1:9", texto: "Esfuérzate y sé valiente... porque Jehová tu Dios estará contigo." },
+  { cita: "Isaías 41:10", texto: "No temas, porque yo estoy contigo; no desmayes, porque yo soy tu Dios." },
+  { cita: "Salmos 46:1", texto: "Dios es nuestro amparo y fortaleza, nuestro pronto auxilio en las tribulaciones." },
+  { cita: "2 Timoteo 1:7", texto: "No nos ha dado Dios espíritu de cobardía, sino de poder, de amor y de dominio propio." },
+  { cita: "Salmos 27:14", texto: "Aguarda a Jehová; esfuérzate, y aliéntese tu corazón." },
+  { cita: "Deuteronomio 31:6", texto: "Esforzaos y cobrad ánimo; no temáis... porque Jehová tu Dios es el que va contigo." },
+  { cita: "Nehemías 8:10", texto: "El gozo de Jehová es vuestra fuerza." },
+  { cita: "Salmos 138:3", texto: "El día que clamé, me respondiste; me fortaleciste con vigor en mi alma." },
+  { cita: "Efesios 3:16", texto: "Que os dé, conforme a las riquezas de su gloria, el ser fortalecidos con poder." },
+  { cita: "Colosenses 3:23", texto: "Todo lo que hagáis, hacedlo de corazón, como para el Señor y no para los hombres." },
+  { cita: "Proverbios 16:3", texto: "Encomienda a Jehová tus obras, y tus pensamientos serán afirmados." },
+  { cita: "Proverbios 14:23", texto: "En toda labor hay fruto, mas las vanas palabras de los labios empobrecen." },
+  { cita: "Eclesiastés 9:10", texto: "Todo lo que te viniere a la mano para hacer, hazlo según tus fuerzas." },
+  { cita: "Proverbios 12:24", texto: "La mano de los diligentes señoreará." },
+  { cita: "2 Tesalonicenses 3:13", texto: "No os canséis de hacer bien." },
+  { cita: "Gálatas 6:9", texto: "No nos cansemos de hacer bien, porque a su tiempo segaremos, si no desmayamos." },
+  { cita: "Proverbios 22:29", texto: "¿Has visto hombre solícito en su trabajo? Delante de los reyes estará." },
+  { cita: "Salmos 90:17", texto: "Sea la luz de Jehová... y confirma tú la obra de nuestras manos." },
+  { cita: "Filipenses 2:13", texto: "Dios es el que en vosotros produce así el querer como el hacer." },
+  { cita: "Salmos 23:1", texto: "Jehová es mi pastor; nada me faltará." },
+  { cita: "Mateo 6:33", texto: "Buscad primeramente el reino de Dios... y todas estas cosas os serán añadidas." },
+  { cita: "Filipenses 4:6-7", texto: "Por nada estéis afanosos... y la paz de Dios guardará vuestros corazones." },
+  { cita: "Salmos 37:4", texto: "Deléitate asimismo en Jehová, y él te concederá las peticiones de tu corazón." },
+  { cita: "Juan 14:27", texto: "La paz os dejo, mi paz os doy; no se turbe vuestro corazón." },
+  { cita: "Salmos 118:24", texto: "Este es el día que hizo Jehová; nos gozaremos y alegraremos en él." },
+  { cita: "Proverbios 3:5-6", texto: "Fíate de Jehová de todo tu corazón... y él enderezará tus veredas." },
+  { cita: "Mateo 11:28", texto: "Venid a mí todos los que estáis trabajados y cargados, y yo os haré descansar." },
+  { cita: "Salmos 34:19", texto: "Muchas son las aflicciones del justo, pero de todas ellas le librará Jehová." },
+  { cita: "Romanos 12:12", texto: "Gozaos en la esperanza; sed sufridos en la tribulación; constantes en la oración." },
+];
+
+function hashCadena(str) {
+  let hash = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    hash ^= str.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  hash ^= hash >>> 16;
+  hash = Math.imul(hash, 0x85ebca6b);
+  hash ^= hash >>> 13;
+  hash = Math.imul(hash, 0xc2b2ae35);
+  hash ^= hash >>> 16;
+  return hash >>> 0;
+}
+
+function versiculoDeHoy() {
+  const indice = hashCadena(hoyISO()) % VERSICULOS.length;
+  return VERSICULOS[indice];
+}
+
+function mostrarVersiculoSiCorresponde() {
+  const hoy = hoyISO();
+  const clave = `mis-ejercicios-versiculo-visto-${ID_ELITA}`;
+  let visto = null;
+  try { visto = localStorage.getItem(clave); } catch (e) {}
+  if (visto === hoy) return;
+  const v = versiculoDeHoy();
+  document.getElementById("versiculo-cita").textContent = v.cita;
+  document.getElementById("versiculo-texto").textContent = `"${v.texto}"`;
+  document.getElementById("versiculo-overlay").hidden = false;
+  try { localStorage.setItem(clave, hoy); } catch (e) {}
+}
+
 function hoyISO() {
   const d = new Date();
   const offset = d.getTimezoneOffset();
@@ -500,6 +586,7 @@ function iniciarApp(id) {
     month: "long",
   });
   renderTodo();
+  mostrarVersiculoSiCorresponde();
 }
 
 // --- Navegación por pestañas (Elita) ---
@@ -1317,6 +1404,11 @@ document.getElementById("cerrar-video").addEventListener("click", cerrarVideo);
 // --- Resumen de fin de entrenamiento ---
 document.getElementById("cerrar-resumen").addEventListener("click", () => {
   document.getElementById("resumen-overlay").hidden = true;
+});
+
+// --- Versículo del día ---
+document.getElementById("cerrar-versiculo").addEventListener("click", () => {
+  document.getElementById("versiculo-overlay").hidden = true;
 });
 
 // --- Inicio ---

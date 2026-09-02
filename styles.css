@@ -450,6 +450,38 @@ h2 {
   margin-top: 16px;
 }
 
+.versiculo-tarjeta {
+  max-width: 340px;
+}
+
+.versiculo-icono {
+  display: block;
+  font-size: 2.4em;
+  margin-bottom: 4px;
+  animation: rebote 0.6s ease 0.15s backwards;
+}
+
+.versiculo-texto {
+  font-family: var(--fuente-titulo);
+  font-style: italic;
+  font-weight: 600;
+  font-size: 1.08em;
+  line-height: 1.4;
+  color: var(--texto);
+  margin: 4px 0 10px;
+}
+
+.versiculo-cita {
+  color: var(--teal-oscuro);
+  font-weight: 800;
+  font-size: 0.88em;
+  margin: 0 0 4px;
+}
+
+.versiculo-tarjeta .btn-principal {
+  margin-top: 16px;
+}
+
 /* ---------- Semanas (gestión) ---------- */
 .semanas-ayuda {
   margin: -4px 0 14px;
