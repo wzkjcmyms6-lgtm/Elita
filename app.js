@@ -125,6 +125,7 @@ const VIDEOS_CONOCIDOS = {
   "Elevación de talones": "videos/elevacion-talones.mp4",
   "Extensión de tríceps con banda": "videos/extension-triceps.mp4",
   "Equilibrio en un pie": "videos/equilibrio-un-pie.mp4",
+  "Rodillas al pecho alternadas": "videos/rodillas-pecho.mp4",
 };
 
 // --- Músculo/zona entrenada por ejercicio principal, para el resumen de fin de entrenamiento ---
@@ -157,7 +158,7 @@ function semana1Inicial() {
     ejercicioInicial("Elevación de talones", "2x10 · pantorrillas, apoyada en silla", "principal", VIDEOS_CONOCIDOS["Elevación de talones"], MUSCULOS_CONOCIDOS["Elevación de talones"]),
     ejercicioInicial("Extensión de tríceps con banda", "2x10 · brazos, sentada", "principal", VIDEOS_CONOCIDOS["Extensión de tríceps con banda"], MUSCULOS_CONOCIDOS["Extensión de tríceps con banda"]),
     ejercicioInicial("Equilibrio en un pie", "2x10 seg por lado · equilibrio, apoyo en silla", "principal", VIDEOS_CONOCIDOS["Equilibrio en un pie"], MUSCULOS_CONOCIDOS["Equilibrio en un pie"]),
-    ejercicioInicial("Rodillas al pecho alternadas", "2x6 por lado · cadera y espalda", "principal", null, MUSCULOS_CONOCIDOS["Rodillas al pecho alternadas"]),
+    ejercicioInicial("Rodillas al pecho alternadas", "2x6 por lado · cadera y espalda", "principal", VIDEOS_CONOCIDOS["Rodillas al pecho alternadas"], MUSCULOS_CONOCIDOS["Rodillas al pecho alternadas"]),
     // Estiramiento final (8-10 min)
     ejercicioInicial("Estiramiento de cadera", "20 seg por lado, echada", "estiramiento"),
     ejercicioInicial("Estiramiento de gemelos", "20 seg por lado, apoyada en pared", "estiramiento"),
