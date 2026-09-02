@@ -1411,6 +1411,17 @@ document.getElementById("cerrar-versiculo").addEventListener("click", () => {
   document.getElementById("versiculo-overlay").hidden = true;
 });
 
+// --- Exportar historial a PDF (usa el diálogo de impresión del navegador) ---
+document.getElementById("exportar-historial-btn").addEventListener("click", () => {
+  document.getElementById("fecha-exportacion").textContent = new Date().toLocaleDateString("es-ES", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+  window.print();
+});
+
 // --- Inicio ---
 const idActivoGuardado = localStorage.getItem(CLAVE_PERFIL_ACTIVO);
 if (idActivoGuardado === ID_ELITA) {

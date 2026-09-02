@@ -207,7 +207,14 @@
 
       <!-- TAB: HISTORIAL -->
       <section id="tab-historial-juan" class="tab-panel">
-        <h2>Historial</h2>
+        <div class="historial-encabezado">
+          <h2>Historial</h2>
+          <button type="button" id="exportar-historial-btn" class="btn-secundario btn-exportar">📄 Exportar PDF</button>
+        </div>
+        <div class="historial-titulo-impresion">
+          <h1>Historial de ejercicios — Elita</h1>
+          <p>Generado el <span id="fecha-exportacion"></span></p>
+        </div>
         <div id="jn-historial" class="lista-ejercicios"></div>
         <p id="jn-historial-vacio" class="msg-vacio" hidden>Elita todavía no registró ningún ejercicio.</p>
       </section>

@@ -836,6 +836,73 @@ h2 {
   padding: 26px 10px;
 }
 
+/* ---------- Historial: exportar a PDF ---------- */
+.historial-encabezado {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 26px 0 12px;
+}
+
+.historial-encabezado h2 { margin: 0; }
+
+.btn-exportar {
+  width: auto;
+  margin-bottom: 0;
+  padding: 10px 14px;
+  font-size: 0.82em;
+  white-space: nowrap;
+}
+
+.historial-titulo-impresion { display: none; }
+
+@media print {
+  .app-header,
+  .bottom-nav,
+  #tab-calendario-juan,
+  .historial-encabezado,
+  .historial-acciones {
+    display: none !important;
+  }
+
+  .historial-titulo-impresion {
+    display: block;
+    margin-bottom: 20px;
+  }
+
+  .historial-titulo-impresion h1 {
+    font-family: var(--fuente-titulo);
+    font-size: 1.4em;
+    margin: 0 0 4px;
+  }
+
+  .historial-titulo-impresion p {
+    color: var(--texto-suave);
+    font-size: 0.85em;
+    margin: 0;
+  }
+
+  body, .app-contenido {
+    height: auto;
+    background: #fff;
+  }
+
+  .app-main {
+    overflow: visible;
+    height: auto;
+    max-width: 100%;
+    padding: 0;
+  }
+
+  .ejercicio-card {
+    box-shadow: none;
+    border: 1px solid var(--borde);
+    animation: none !important;
+    break-inside: avoid;
+  }
+}
+
 /* ---------- Progreso: resumen ---------- */
 .resumen-grid {
   display: grid;
