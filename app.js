@@ -117,6 +117,7 @@ const VIDEOS_CONOCIDOS = {
   "Marcha en el lugar": "videos/marcha-en-el-lugar.mp4",
   "Círculos de cadera": "videos/circulos-cadera.mp4",
   "Círculos de tobillo": "videos/circulos-tobillo.mp4",
+  "Sentadilla asistida en silla": "videos/sentadilla-asistida.mp4",
 };
 
 // --- Músculo/zona entrenada por ejercicio principal, para el resumen de fin de entrenamiento ---
@@ -141,7 +142,7 @@ function semana1Inicial() {
     ejercicioInicial("Círculos de cadera", "1 min, de pie apoyada en silla", "calentamiento", VIDEOS_CONOCIDOS["Círculos de cadera"]),
     ejercicioInicial("Círculos de tobillo", "30 seg por lado, sentada", "calentamiento", VIDEOS_CONOCIDOS["Círculos de tobillo"]),
     // Bloque principal (2 series x 8-10, descanso 30 seg)
-    ejercicioInicial("Sentadilla asistida en silla", "2x8 · piernas y glúteos", "principal", null, MUSCULOS_CONOCIDOS["Sentadilla asistida en silla"]),
+    ejercicioInicial("Sentadilla asistida en silla", "2x8 · piernas y glúteos", "principal", VIDEOS_CONOCIDOS["Sentadilla asistida en silla"], MUSCULOS_CONOCIDOS["Sentadilla asistida en silla"]),
     ejercicioInicial("Puente de glúteo", "2x8 · glúteos y core", "principal", null, MUSCULOS_CONOCIDOS["Puente de glúteo"]),
     ejercicioInicial("Remo sentada con banda", "2x10 · espalda", "principal", null, MUSCULOS_CONOCIDOS["Remo sentada con banda"]),
     ejercicioInicial("Elevación lateral de brazos", "2x10 · hombros", "principal", null, MUSCULOS_CONOCIDOS["Elevación lateral de brazos"]),
