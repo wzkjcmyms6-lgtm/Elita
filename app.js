@@ -1,4 +1,6 @@
-// --- Almacenamiento ---
+// --- Configuración fija ---
+const ID_ELITA = "elita";
+const CLAVE_JUAN = "1925";
 const CLAVE_PERFILES = "mis-ejercicios-perfiles";
 const CLAVE_PERFIL_ACTIVO = "mis-ejercicios-perfil-activo";
 
@@ -9,6 +11,7 @@ function hoyISO() {
   return local.toISOString().slice(0, 10);
 }
 
+// --- Almacenamiento ---
 function cargarPerfiles() {
   const datos = localStorage.getItem(CLAVE_PERFILES);
   return datos ? JSON.parse(datos) : [];
@@ -16,6 +19,16 @@ function cargarPerfiles() {
 
 function guardarPerfiles(lista) {
   localStorage.setItem(CLAVE_PERFILES, JSON.stringify(lista));
+}
+
+function asegurarPerfilElita() {
+  let elita = perfiles.find((p) => p.id === ID_ELITA);
+  if (!elita) {
+    elita = { id: ID_ELITA, nombre: "Elita" };
+    perfiles.push(elita);
+    guardarPerfiles(perfiles);
+  }
+  return elita;
 }
 
 function cargarEjerciciosDe(perfilId) {
@@ -125,58 +138,68 @@ function crearAnillosConcentricos(anillos) {
   return svg;
 }
 
-// --- Selección de usuario ---
 function iniciales(nombre) {
   return nombre.trim().charAt(0).toUpperCase() || "?";
 }
 
-function renderPantallaPerfil() {
-  const lista = document.getElementById("lista-perfiles");
-  lista.innerHTML = "";
-  perfiles.forEach((p) => {
-    const fila = document.createElement("div");
-    fila.className = "perfil-btn";
-    fila.innerHTML = `
-      <button type="button" class="perfil-seleccionar">
-        <span class="perfil-avatar">${iniciales(p.nombre)}</span>
-        <span>${escapeHtml(p.nombre)}</span>
-      </button>
-      <button type="button" class="perfil-borrar" aria-label="Eliminar a ${escapeHtml(p.nombre)}">🗑</button>
-    `;
-    fila.querySelector(".perfil-seleccionar").addEventListener("click", () => {
-      seleccionarPerfil(p.id);
-    });
-    fila.querySelector(".perfil-borrar").addEventListener("click", () => {
-      if (confirm(`¿Eliminar a "${p.nombre}" y todo su progreso?`)) {
-        eliminarPerfil(p.id);
-      }
-    });
-    lista.appendChild(fila);
-  });
+function escapeHtml(texto) {
+  const div = document.createElement("div");
+  div.textContent = texto;
+  return div.innerHTML;
 }
 
-function seleccionarPerfil(id) {
-  localStorage.setItem(CLAVE_PERFIL_ACTIVO, id);
-  iniciarApp(id);
-}
-
-function eliminarPerfil(id) {
-  perfiles = perfiles.filter((p) => p.id !== id);
-  guardarPerfiles(perfiles);
-  localStorage.removeItem(`mis-ejercicios-datos-${id}`);
-  localStorage.removeItem(`mis-ejercicios-registro-${id}`);
-  if (localStorage.getItem(CLAVE_PERFIL_ACTIVO) === id) {
-    localStorage.removeItem(CLAVE_PERFIL_ACTIVO);
-  }
-  renderPantallaPerfil();
-}
-
+// --- Pantallas de acceso ---
 function mostrarPantallaPerfil() {
   document.getElementById("app-contenido").hidden = true;
+  document.getElementById("app-juan").hidden = true;
+  document.getElementById("pantalla-clave").hidden = true;
   document.getElementById("pantalla-perfil").hidden = false;
-  renderPantallaPerfil();
 }
 
+function mostrarPantallaClave() {
+  document.getElementById("input-clave").value = "";
+  document.getElementById("clave-error").hidden = true;
+  document.getElementById("pantalla-perfil").hidden = true;
+  document.getElementById("pantalla-clave").hidden = false;
+  setTimeout(() => document.getElementById("input-clave").focus(), 100);
+}
+
+document.getElementById("btn-perfil-elita").addEventListener("click", () => {
+  asegurarPerfilElita();
+  localStorage.setItem(CLAVE_PERFIL_ACTIVO, ID_ELITA);
+  iniciarApp(ID_ELITA);
+});
+
+document.getElementById("btn-perfil-juan").addEventListener("click", () => {
+  mostrarPantallaClave();
+});
+
+document.getElementById("volver-selector").addEventListener("click", () => {
+  mostrarPantallaPerfil();
+});
+
+document.getElementById("form-clave").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const input = document.getElementById("input-clave");
+  if (input.value.trim() === CLAVE_JUAN) {
+    iniciarJuan();
+  } else {
+    document.getElementById("clave-error").hidden = false;
+    input.value = "";
+    input.focus();
+  }
+});
+
+document.getElementById("cerrar-sesion-elita").addEventListener("click", () => {
+  localStorage.removeItem(CLAVE_PERFIL_ACTIVO);
+  mostrarPantallaPerfil();
+});
+
+document.getElementById("cerrar-sesion-juan").addEventListener("click", () => {
+  mostrarPantallaPerfil();
+});
+
+// --- App de Elita ---
 function iniciarApp(id) {
   perfilActivo = perfiles.find((p) => p.id === id);
   if (!perfilActivo) {
@@ -185,50 +208,33 @@ function iniciarApp(id) {
   }
   ejercicios = cargarEjerciciosDe(id);
   registro = cargarRegistroDe(id);
+  mesVisible = new Date();
   document.getElementById("pantalla-perfil").hidden = true;
+  document.getElementById("pantalla-clave").hidden = true;
+  document.getElementById("app-juan").hidden = true;
   document.getElementById("app-contenido").hidden = false;
   document.getElementById("saludo-usuario").textContent = `Hola, ${perfilActivo.nombre} 👋`;
   document.getElementById("avatar-header").textContent = iniciales(perfilActivo.nombre);
+  document.getElementById("fecha-hoy").textContent = new Date().toLocaleDateString("es-ES", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
   renderSugerencias();
   renderTodo();
 }
 
-document.getElementById("form-perfil").addEventListener("submit", (e) => {
-  e.preventDefault();
-  const input = document.getElementById("nombre-perfil");
-  const nombre = input.value.trim();
-  if (!nombre) return;
-  const nuevo = { id: crypto.randomUUID(), nombre };
-  perfiles.push(nuevo);
-  guardarPerfiles(perfiles);
-  input.value = "";
-  seleccionarPerfil(nuevo.id);
-});
-
-document.getElementById("cambiar-usuario").addEventListener("click", () => {
-  localStorage.removeItem(CLAVE_PERFIL_ACTIVO);
-  mostrarPantallaPerfil();
-});
-
-document.getElementById("eliminar-usuario").addEventListener("click", () => {
-  if (confirm(`¿Eliminar a "${perfilActivo.nombre}" y todo su progreso? Esta acción no se puede deshacer.`)) {
-    const id = perfilActivo.id;
-    eliminarPerfil(id);
-  }
-});
-
-// --- Navegación por pestañas ---
+// --- Navegación por pestañas (Elita) ---
 function irATab(nombreTab) {
-  document.querySelectorAll(".nav-btn").forEach((b) => b.classList.remove("active"));
-  document.querySelectorAll(".tab-panel").forEach((p) => p.classList.remove("active"));
-  document.querySelector(`.nav-btn[data-tab="${nombreTab}"]`).classList.add("active");
+  document.querySelectorAll("#app-contenido .nav-btn").forEach((b) => b.classList.remove("active"));
+  document.querySelectorAll("#app-contenido .tab-panel").forEach((p) => p.classList.remove("active"));
+  document.querySelector(`#app-contenido .nav-btn[data-tab="${nombreTab}"]`).classList.add("active");
   document.getElementById(`tab-${nombreTab}`).classList.add("active");
   if (nombreTab === "progreso") renderProgreso();
   if (nombreTab === "perfil") renderPerfil();
-  window.scrollTo({ top: 0, behavior: "instant" });
 }
 
-document.querySelectorAll(".nav-btn").forEach((btn) => {
+document.querySelectorAll("#app-contenido .nav-btn").forEach((btn) => {
   btn.addEventListener("click", () => irATab(btn.dataset.tab));
 });
 
@@ -239,13 +245,6 @@ document.querySelectorAll(".acceso-btn").forEach((btn) => {
       setTimeout(() => document.getElementById("nombre-ejercicio").focus(), 150);
     }
   });
-});
-
-// --- Fecha de hoy en el encabezado ---
-document.getElementById("fecha-hoy").textContent = new Date().toLocaleDateString("es-ES", {
-  weekday: "long",
-  day: "numeric",
-  month: "long",
 });
 
 // --- Pestaña Hoy ---
@@ -369,13 +368,8 @@ function renderGraficoSemana(contenedorId) {
   }
 }
 
-// --- Pestaña Progreso ---
-function renderProgreso() {
-  document.getElementById("total-dias").textContent = Object.keys(registro).filter(
-    (f) => registro[f].length > 0
-  ).length;
-  document.getElementById("mejor-racha").textContent = calcularMejorRacha();
-
+// --- Resumen / calendario (reutilizado por Elita y por la vista de Juan Manolo) ---
+function calcularResumenSemana() {
   let contadorSemana = 0;
   let ejerciciosSemana = 0;
   for (let i = 6; i >= 0; i--) {
@@ -387,35 +381,26 @@ function renderProgreso() {
       ejerciciosSemana += registro[iso].length;
     }
   }
-  document.getElementById("total-semana").textContent = contadorSemana;
-
-  const racha = calcularRachaActual();
-  const metaEjercicios = Math.max(1, ejercicios.length * 7);
-
-  const anillos = [
-    { porcentaje: (contadorSemana / 7) * 100, color: "#2f9e8f" },
-    { porcentaje: (ejerciciosSemana / metaEjercicios) * 100, color: "#ef8a5f" },
-    { porcentaje: (Math.min(racha, 7) / 7) * 100, color: "#c99a4a" },
-  ];
-  document.getElementById("anillos-semana-wrap").innerHTML = crearAnillosConcentricos(anillos);
-
-  document.getElementById("anillos-leyenda").innerHTML = `
-    <div class="leyenda-fila"><span class="leyenda-punto" style="background:#2f9e8f"></span><span class="leyenda-texto">Días activos</span><span class="leyenda-valor">${contadorSemana}/7</span></div>
-    <div class="leyenda-fila"><span class="leyenda-punto" style="background:#ef8a5f"></span><span class="leyenda-texto">Ejercicios hechos</span><span class="leyenda-valor">${ejerciciosSemana}</span></div>
-    <div class="leyenda-fila"><span class="leyenda-punto" style="background:#c99a4a"></span><span class="leyenda-texto">Racha actual</span><span class="leyenda-valor">${racha} días</span></div>
-  `;
-
-  renderCalendario();
+  return { contadorSemana, ejerciciosSemana };
 }
 
-function renderCalendario() {
-  const contenedor = document.getElementById("calendario");
+function renderResumenStats(prefijo) {
+  document.getElementById(`${prefijo}total-dias`).textContent = Object.keys(registro).filter(
+    (f) => registro[f].length > 0
+  ).length;
+  document.getElementById(`${prefijo}mejor-racha`).textContent = calcularMejorRacha();
+  const { contadorSemana } = calcularResumenSemana();
+  document.getElementById(`${prefijo}total-semana`).textContent = contadorSemana;
+}
+
+function renderCalendarioEn(contenedorId, mesActualId) {
+  const contenedor = document.getElementById(contenedorId);
   contenedor.innerHTML = "";
 
   const año = mesVisible.getFullYear();
   const mes = mesVisible.getMonth();
 
-  document.getElementById("mes-actual").textContent = mesVisible.toLocaleDateString("es-ES", {
+  document.getElementById(mesActualId).textContent = mesVisible.toLocaleDateString("es-ES", {
     month: "long",
     year: "numeric",
   });
@@ -441,13 +426,37 @@ function renderCalendario() {
   }
 }
 
+// --- Pestaña Progreso (Elita) ---
+function renderProgreso() {
+  renderResumenStats("");
+
+  const { contadorSemana, ejerciciosSemana } = calcularResumenSemana();
+  const racha = calcularRachaActual();
+  const metaEjercicios = Math.max(1, ejercicios.length * 7);
+
+  const anillos = [
+    { porcentaje: (contadorSemana / 7) * 100, color: "#2f9e8f" },
+    { porcentaje: (ejerciciosSemana / metaEjercicios) * 100, color: "#ef8a5f" },
+    { porcentaje: (Math.min(racha, 7) / 7) * 100, color: "#c99a4a" },
+  ];
+  document.getElementById("anillos-semana-wrap").innerHTML = crearAnillosConcentricos(anillos);
+
+  document.getElementById("anillos-leyenda").innerHTML = `
+    <div class="leyenda-fila"><span class="leyenda-punto" style="background:#2f9e8f"></span><span class="leyenda-texto">Días activos</span><span class="leyenda-valor">${contadorSemana}/7</span></div>
+    <div class="leyenda-fila"><span class="leyenda-punto" style="background:#ef8a5f"></span><span class="leyenda-texto">Ejercicios hechos</span><span class="leyenda-valor">${ejerciciosSemana}</span></div>
+    <div class="leyenda-fila"><span class="leyenda-punto" style="background:#c99a4a"></span><span class="leyenda-texto">Racha actual</span><span class="leyenda-valor">${racha} días</span></div>
+  `;
+
+  renderCalendarioEn("calendario", "mes-actual");
+}
+
 document.getElementById("mes-anterior").addEventListener("click", () => {
   mesVisible.setMonth(mesVisible.getMonth() - 1);
-  renderCalendario();
+  renderCalendarioEn("calendario", "mes-actual");
 });
 document.getElementById("mes-siguiente").addEventListener("click", () => {
   mesVisible.setMonth(mesVisible.getMonth() + 1);
-  renderCalendario();
+  renderCalendarioEn("calendario", "mes-actual");
 });
 
 // --- Pestaña Ejercicios ---
@@ -527,7 +536,7 @@ function renderGestion() {
   });
 }
 
-// --- Pestaña Perfil ---
+// --- Pestaña Perfil (Elita) ---
 function renderPerfil() {
   document.getElementById("avatar-grande").textContent = iniciales(perfilActivo.nombre);
   document.getElementById("perfil-resumen-nombre").textContent = perfilActivo.nombre;
@@ -535,12 +544,6 @@ function renderPerfil() {
   document.getElementById("perfil-dias").textContent = Object.keys(registro).filter(
     (f) => registro[f].length > 0
   ).length;
-}
-
-function escapeHtml(texto) {
-  const div = document.createElement("div");
-  div.textContent = texto;
-  return div.innerHTML;
 }
 
 function renderTodo() {
@@ -554,9 +557,98 @@ function renderTodo() {
   }
 }
 
+// --- App de Juan Manolo (solo lectura del progreso de Elita) ---
+function iniciarJuan() {
+  asegurarPerfilElita();
+  ejercicios = cargarEjerciciosDe(ID_ELITA);
+  registro = cargarRegistroDe(ID_ELITA);
+  mesVisible = new Date();
+
+  document.getElementById("pantalla-perfil").hidden = true;
+  document.getElementById("pantalla-clave").hidden = true;
+  document.getElementById("app-contenido").hidden = true;
+  document.getElementById("app-juan").hidden = false;
+
+  document.getElementById("fecha-hoy-juan").textContent = new Date().toLocaleDateString("es-ES", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+
+  irATabJuan("calendario");
+}
+
+function irATabJuan(nombreTab) {
+  document.querySelectorAll("#app-juan .nav-btn").forEach((b) => b.classList.remove("active"));
+  document.querySelectorAll("#app-juan .tab-panel").forEach((p) => p.classList.remove("active"));
+  document.querySelector(`#app-juan .nav-btn[data-tab-juan="${nombreTab}"]`).classList.add("active");
+  document.getElementById(`tab-${nombreTab}-juan`).classList.add("active");
+  if (nombreTab === "calendario") {
+    renderResumenStats("jn-");
+    renderCalendarioEn("jn-calendario", "jn-mes-actual");
+  }
+  if (nombreTab === "historial") {
+    renderHistorial();
+  }
+}
+
+document.querySelectorAll("#app-juan .nav-btn").forEach((btn) => {
+  btn.addEventListener("click", () => irATabJuan(btn.dataset.tabJuan));
+});
+
+document.getElementById("jn-mes-anterior").addEventListener("click", () => {
+  mesVisible.setMonth(mesVisible.getMonth() - 1);
+  renderCalendarioEn("jn-calendario", "jn-mes-actual");
+});
+document.getElementById("jn-mes-siguiente").addEventListener("click", () => {
+  mesVisible.setMonth(mesVisible.getMonth() + 1);
+  renderCalendarioEn("jn-calendario", "jn-mes-actual");
+});
+
+function renderHistorial() {
+  const contenedor = document.getElementById("jn-historial");
+  const vacio = document.getElementById("jn-historial-vacio");
+  contenedor.innerHTML = "";
+
+  const nombresPorId = new Map(ejercicios.map((ej) => [ej.id, ej.nombre]));
+  const dias = Object.keys(registro)
+    .filter((f) => registro[f].length > 0)
+    .sort()
+    .reverse();
+
+  if (dias.length === 0) {
+    vacio.hidden = false;
+    return;
+  }
+  vacio.hidden = true;
+
+  dias.forEach((iso) => {
+    const fecha = new Date(`${iso}T00:00:00`);
+    const fechaTexto = fecha.toLocaleDateString("es-ES", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+    });
+    const nombres = registro[iso].map((id) => nombresPorId.get(id) || "Ejercicio eliminado");
+
+    const card = document.createElement("div");
+    card.className = "ejercicio-card hecho";
+    card.innerHTML = `
+      <span class="ejercicio-icono tile-teal">✓</span>
+      <div class="ejercicio-info">
+        <span class="ejercicio-nombre">${escapeHtml(fechaTexto)}</span>
+        <span class="ejercicio-detalle">${escapeHtml(nombres.join(", "))}</span>
+      </div>
+    `;
+    contenedor.appendChild(card);
+  });
+}
+
+// --- Inicio ---
 const idActivoGuardado = localStorage.getItem(CLAVE_PERFIL_ACTIVO);
-if (idActivoGuardado && perfiles.some((p) => p.id === idActivoGuardado)) {
-  iniciarApp(idActivoGuardado);
+if (idActivoGuardado === ID_ELITA) {
+  asegurarPerfilElita();
+  iniciarApp(ID_ELITA);
 } else {
   mostrarPantallaPerfil();
 }

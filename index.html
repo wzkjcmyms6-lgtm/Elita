@@ -7,21 +7,49 @@
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <!-- PANTALLA: SELECTOR DE PERFIL -->
   <section id="pantalla-perfil" class="pantalla-perfil">
     <div class="perfil-hero">
       <div class="perfil-hero-icono">💪</div>
       <h1 class="perfil-titulo">Tu progreso<br>empieza hoy</h1>
-      <p class="perfil-subtitulo">Registra tus ejercicios, seguí tu racha y mirá cuánto avanzaste.</p>
+      <p class="perfil-subtitulo">¿Quién sos?</p>
 
-      <div id="lista-perfiles" class="lista-perfiles"></div>
+      <div class="lista-perfiles">
+        <button type="button" id="btn-perfil-elita" class="tarjeta-perfil-fijo">
+          <span class="perfil-avatar">E</span>
+          <span class="tarjeta-perfil-info">
+            <span class="tarjeta-perfil-nombre">Elita</span>
+            <span class="tarjeta-perfil-desc">Hacer mis ejercicios</span>
+          </span>
+        </button>
+        <button type="button" id="btn-perfil-juan" class="tarjeta-perfil-fijo">
+          <span class="perfil-avatar">J</span>
+          <span class="tarjeta-perfil-info">
+            <span class="tarjeta-perfil-nombre">Juan Manolo</span>
+            <span class="tarjeta-perfil-desc">Ver el progreso de Elita</span>
+          </span>
+        </button>
+      </div>
+    </div>
+  </section>
 
-      <form id="form-perfil" class="form-perfil">
-        <input type="text" id="nombre-perfil" placeholder="Tu nombre (ej. Tía Rosa)" maxlength="24" required>
-        <button type="submit" class="btn-principal">Comenzar</button>
+  <!-- PANTALLA: CLAVE PARA JUAN MANOLO -->
+  <section id="pantalla-clave" class="pantalla-perfil" hidden>
+    <div class="perfil-hero">
+      <div class="perfil-hero-icono">🔒</div>
+      <h1 class="perfil-titulo">Hola, Juan Manolo</h1>
+      <p class="perfil-subtitulo">Ingresá la clave para ver el progreso de Elita.</p>
+
+      <form id="form-clave" class="form-perfil">
+        <input type="password" inputmode="numeric" pattern="[0-9]*" id="input-clave" placeholder="Clave" maxlength="4" autocomplete="off">
+        <p id="clave-error" class="clave-error" hidden>Clave incorrecta, probá de nuevo.</p>
+        <button type="submit" class="btn-principal">Entrar</button>
+        <button type="button" id="volver-selector" class="btn-secundario">‹ Volver</button>
       </form>
     </div>
   </section>
 
+  <!-- APP DE ELITA -->
   <div id="app-contenido" class="app-contenido" hidden>
     <header class="app-header">
       <div>
@@ -60,8 +88,8 @@
             <span>Mis ejercicios</span>
           </button>
           <button type="button" class="acceso-btn" data-ir="perfil">
-            <span class="acceso-icono tile-teal">🔄</span>
-            <span>Cambiar usuario</span>
+            <span class="acceso-icono tile-teal">👤</span>
+            <span>Mi perfil</span>
           </button>
         </div>
 
@@ -135,8 +163,7 @@
           </div>
         </div>
 
-        <button type="button" id="cambiar-usuario" class="btn-secundario">Cambiar de usuario</button>
-        <button type="button" id="eliminar-usuario" class="btn-peligro">Eliminar mi usuario</button>
+        <button type="button" id="cerrar-sesion-elita" class="btn-secundario">Cerrar sesión</button>
       </section>
     </main>
 
@@ -156,6 +183,63 @@
       <button class="nav-btn" data-tab="perfil">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
         <span>Perfil</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- APP DE JUAN MANOLO (SOLO VISTA) -->
+  <div id="app-juan" class="app-contenido" hidden>
+    <header class="app-header">
+      <div>
+        <p class="saludo-usuario">Progreso de Elita</p>
+        <p id="fecha-hoy-juan" class="fecha"></p>
+      </div>
+      <button type="button" id="cerrar-sesion-juan" class="salir-header-btn" aria-label="Salir">Salir</button>
+    </header>
+
+    <main class="app-main">
+      <!-- TAB: CALENDARIO -->
+      <section id="tab-calendario-juan" class="tab-panel active">
+        <div class="resumen-grid">
+          <div class="resumen-card">
+            <span class="resumen-numero" id="jn-total-dias">0</span>
+            <span class="resumen-etiqueta">días totales</span>
+          </div>
+          <div class="resumen-card">
+            <span class="resumen-numero" id="jn-total-semana">0</span>
+            <span class="resumen-etiqueta">esta semana</span>
+          </div>
+          <div class="resumen-card">
+            <span class="resumen-numero" id="jn-mejor-racha">0</span>
+            <span class="resumen-etiqueta">mejor racha</span>
+          </div>
+        </div>
+
+        <h2>Calendario</h2>
+        <div class="calendario-nav">
+          <button id="jn-mes-anterior" class="btn-icono" aria-label="Mes anterior">◀</button>
+          <span id="jn-mes-actual" class="mes-titulo"></span>
+          <button id="jn-mes-siguiente" class="btn-icono" aria-label="Mes siguiente">▶</button>
+        </div>
+        <div id="jn-calendario" class="calendario"></div>
+      </section>
+
+      <!-- TAB: HISTORIAL -->
+      <section id="tab-historial-juan" class="tab-panel">
+        <h2>Historial</h2>
+        <div id="jn-historial" class="lista-ejercicios"></div>
+        <p id="jn-historial-vacio" class="msg-vacio" hidden>Elita todavía no registró ningún ejercicio.</p>
+      </section>
+    </main>
+
+    <nav class="bottom-nav">
+      <button class="nav-btn active" data-tab-juan="calendario">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
+        <span>Calendario</span>
+      </button>
+      <button class="nav-btn" data-tab-juan="historial">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l4 2"/></svg>
+        <span>Historial</span>
       </button>
     </nav>
   </div>
