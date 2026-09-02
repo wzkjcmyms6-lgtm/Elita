@@ -7,18 +7,35 @@
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <header class="app-header">
-    <h1>💪 Mis Ejercicios</h1>
-    <p id="fecha-hoy" class="fecha"></p>
-  </header>
+  <section id="pantalla-perfil" class="pantalla-perfil">
+    <div class="perfil-tarjeta">
+      <h1 class="perfil-titulo">💪 Mis Ejercicios</h1>
+      <p class="perfil-subtitulo">¿Quién va a hacer ejercicio hoy?</p>
 
-  <nav class="tabs">
-    <button class="tab-btn active" data-tab="hoy">Hoy</button>
-    <button class="tab-btn" data-tab="progreso">Mi Progreso</button>
-    <button class="tab-btn" data-tab="ejercicios">Mis Ejercicios</button>
-  </nav>
+      <div id="lista-perfiles" class="lista-perfiles"></div>
 
-  <main>
+      <form id="form-perfil" class="form-perfil">
+        <input type="text" id="nombre-perfil" placeholder="Nombre (ej. Tía Rosa)" maxlength="24" required>
+        <button type="submit" class="btn-principal">Crear mi usuario</button>
+      </form>
+    </div>
+  </section>
+
+  <div id="app-contenido" class="app-contenido" hidden>
+    <header class="app-header">
+      <button id="cambiar-usuario" class="cambiar-usuario-btn">Cambiar usuario</button>
+      <h1>💪 Mis Ejercicios</h1>
+      <p id="saludo-usuario" class="saludo-usuario"></p>
+      <p id="fecha-hoy" class="fecha"></p>
+    </header>
+
+    <nav class="tabs">
+      <button class="tab-btn active" data-tab="hoy">Hoy</button>
+      <button class="tab-btn" data-tab="progreso">Mi Progreso</button>
+      <button class="tab-btn" data-tab="ejercicios">Mis Ejercicios</button>
+    </nav>
+
+    <main>
     <!-- TAB: HOY -->
     <section id="tab-hoy" class="tab-panel active">
       <div class="racha-card">
@@ -80,7 +97,8 @@
       <h2>Mis ejercicios</h2>
       <div id="lista-gestion" class="lista-gestion"></div>
     </section>
-  </main>
+    </main>
+  </div>
 
   <script src="app.js"></script>
 </body>

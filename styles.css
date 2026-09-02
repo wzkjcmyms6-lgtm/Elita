@@ -12,6 +12,8 @@
 
 * { box-sizing: border-box; }
 
+[hidden] { display: none !important; }
+
 body {
   margin: 0;
   font-family: "Segoe UI", Verdana, Arial, sans-serif;
@@ -22,16 +24,143 @@ body {
   padding-bottom: 40px;
 }
 
-.app-header {
+.pantalla-perfil {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+.perfil-tarjeta {
+  width: 100%;
+  max-width: 380px;
+  background: var(--tarjeta);
+  border: 2px solid var(--borde);
+  border-radius: 18px;
+  padding: 28px 24px;
+  text-align: center;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+}
+
+.perfil-titulo {
+  margin: 0 0 6px;
+  font-size: 1.6em;
+  color: var(--verde);
+}
+
+.perfil-subtitulo {
+  margin: 0 0 20px;
+  color: var(--texto-suave);
+}
+
+.lista-perfiles {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.perfil-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--fondo);
+  border: 2px solid var(--borde);
+  border-radius: 12px;
+  padding: 6px 8px 6px 14px;
+}
+
+.perfil-btn:hover {
+  border-color: var(--verde);
+}
+
+.perfil-seleccionar {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: none;
+  border: none;
+  padding: 6px 0;
+  font-family: inherit;
+  font-size: 1.05em;
+  font-weight: 700;
+  color: var(--texto);
+  cursor: pointer;
+  text-align: left;
+}
+
+.perfil-avatar {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
   background: var(--verde);
   color: #fff;
-  padding: 24px 20px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+}
+
+.perfil-borrar {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: #c0463c;
+  font-size: 1.2em;
+  cursor: pointer;
+  padding: 4px 6px;
+}
+
+.form-perfil {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.form-perfil input {
+  font-size: 1em;
+  padding: 12px;
+  border: 2px solid var(--borde);
+  border-radius: 10px;
+  font-family: inherit;
   text-align: center;
 }
 
+.app-header {
+  background: var(--verde);
+  color: #fff;
+  padding: 16px 76px 18px 20px;
+  text-align: center;
+  position: relative;
+}
+
 .app-header h1 {
-  margin: 0 0 4px;
+  margin: 8px 0 4px;
   font-size: 1.7em;
+}
+
+.cambiar-usuario-btn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: rgba(255,255,255,0.2);
+  border: none;
+  color: #fff;
+  font-size: 0.72em;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.saludo-usuario {
+  margin: 0 0 2px;
+  font-weight: 700;
 }
 
 .fecha {
