@@ -38,17 +38,21 @@ function ejercicioInicial(nombre, detalle, categoria, video) {
 // --- Videos guía conocidos, usados también para completar ejercicios ya guardados ---
 const VIDEOS_CONOCIDOS = {
   "Círculos de cuello": "videos/circulos-cuello.mp4",
+  "Círculos de hombros": "videos/circulos-hombros.mp4",
+  "Marcha en el lugar": "videos/marcha-en-el-lugar.mp4",
+  "Círculos de cadera": "videos/circulos-cadera.mp4",
+  "Círculos de tobillo": "videos/circulos-tobillo.mp4",
 };
 
 function semana1Inicial() {
   return [
     // Calentamiento (todos los días, 8 min)
     ejercicioInicial("Círculos de cuello", "30 seg, sentada, movimientos suaves", "calentamiento", VIDEOS_CONOCIDOS["Círculos de cuello"]),
-    ejercicioInicial("Círculos de hombros", "1 min, adelante y atrás", "calentamiento"),
-    ejercicioInicial("Marcha en el lugar", "2 min, sostenida de la silla", "calentamiento"),
-    ejercicioInicial("Círculos de cadera", "1 min, de pie apoyada en silla", "calentamiento"),
-    ejercicioInicial("Círculos de tobillo", "30 seg por lado, sentada", "calentamiento"),
-    // Bloque principal (2 series x 8-10, descanso 60 seg)
+    ejercicioInicial("Círculos de hombros", "1 min, adelante y atrás", "calentamiento", VIDEOS_CONOCIDOS["Círculos de hombros"]),
+    ejercicioInicial("Marcha en el lugar", "2 min, sostenida de la silla", "calentamiento", VIDEOS_CONOCIDOS["Marcha en el lugar"]),
+    ejercicioInicial("Círculos de cadera", "1 min, de pie apoyada en silla", "calentamiento", VIDEOS_CONOCIDOS["Círculos de cadera"]),
+    ejercicioInicial("Círculos de tobillo", "30 seg por lado, sentada", "calentamiento", VIDEOS_CONOCIDOS["Círculos de tobillo"]),
+    // Bloque principal (2 series x 8-10, descanso 30 seg)
     ejercicioInicial("Sentadilla asistida en silla", "2x8 · piernas y glúteos", "principal"),
     ejercicioInicial("Puente de glúteo", "2x8 · glúteos y core", "principal"),
     ejercicioInicial("Remo sentada con banda", "2x10 · espalda", "principal"),
@@ -131,11 +135,21 @@ function guardarRegistro(registro) {
   localStorage.setItem(`mis-ejercicios-registro-${perfilActivo.id}`, JSON.stringify(registro));
 }
 
+function cargarCronometrosDe(perfilId) {
+  const datos = localStorage.getItem(`mis-ejercicios-cronometro-${perfilId}`);
+  return datos ? JSON.parse(datos) : {};
+}
+
+function guardarCronometros(cronometros) {
+  localStorage.setItem(`mis-ejercicios-cronometro-${perfilActivo.id}`, JSON.stringify(cronometros));
+}
+
 let perfiles = cargarPerfiles();
 let perfilActivo = null;
 let semanas = { 1: [], 2: [], 3: [], 4: [] };
 let semanaActual = 1;
 let registro = {};
+let cronometros = {};
 let mesVisible = new Date();
 
 // --- Íconos y colores por ejercicio ---
@@ -323,6 +337,7 @@ function iniciarApp(id) {
   semanas = cargarSemanasDe(id);
   semanaActual = cargarSemanaActualDe(id);
   registro = cargarRegistroDe(id);
+  cronometros = cargarCronometrosDe(id);
   mesVisible = new Date();
   document.getElementById("pantalla-perfil").hidden = true;
   document.getElementById("pantalla-clave").hidden = true;
@@ -401,7 +416,7 @@ function renderHoy() {
           card.querySelectorAll(".serie-btn").forEach((btn) => {
             btn.addEventListener("click", () => {
               const marcada = toggleCompletado(btn.dataset.clave);
-              if (marcada) iniciarTemporizador(60);
+              if (marcada) iniciarTemporizador(30);
             });
           });
         } else {
@@ -418,7 +433,7 @@ function renderHoy() {
           `;
           card.querySelector(".check-btn").addEventListener("click", () => {
             const marcada = toggleCompletado(ej.id);
-            if (marcada) iniciarTemporizador(60);
+            if (marcada) iniciarTemporizador(30);
           });
         }
         card.querySelectorAll(".ver-video-btn").forEach((btn) => {
@@ -441,6 +456,7 @@ function renderHoy() {
     `<div class="anillo-porcentaje">${porcentaje}%</div>`;
   document.getElementById("anillo-hoy-detalle").textContent = `${hechos} de ${total} ejercicios`;
 
+  actualizarCronometroUI();
   renderGraficoSemana("semana-grafico");
 }
 
@@ -471,6 +487,65 @@ function verificarProgresionSemana() {
   }
 }
 
+// --- Cronómetro de entrenamiento (desde el primer ejercicio marcado hasta completar el día) ---
+function formatoDuracion(ms) {
+  const totalSeg = Math.max(0, Math.floor(ms / 1000));
+  const min = Math.floor(totalSeg / 60);
+  const seg = totalSeg % 60;
+  return `${String(min).padStart(2, "0")}:${String(seg).padStart(2, "0")}`;
+}
+
+function verificarCronometroHoy(hechosHoy) {
+  const hoy = hoyISO();
+  const listaActual = semanas[semanaActual] || [];
+  const completoHoy = diaCompletoParaLista(listaActual, hechosHoy);
+  let cambio = false;
+  if (hechosHoy.length > 0 && !cronometros[hoy]) {
+    cronometros[hoy] = { inicio: Date.now(), fin: null };
+    cambio = true;
+  }
+  if (cronometros[hoy] && completoHoy && !cronometros[hoy].fin) {
+    cronometros[hoy].fin = Date.now();
+    cambio = true;
+  }
+  if (cambio) guardarCronometros(cronometros);
+}
+
+let cronometroEntrenamientoIntervalo = null;
+
+function actualizarCronometroUI() {
+  const tarjeta = document.getElementById("tarjeta-cronometro");
+  const valor = document.getElementById("cronometro-valor");
+  const titulo = document.getElementById("cronometro-titulo");
+  const estado = cronometros[hoyISO()];
+
+  if (!estado) {
+    tarjeta.hidden = true;
+    if (cronometroEntrenamientoIntervalo) {
+      clearInterval(cronometroEntrenamientoIntervalo);
+      cronometroEntrenamientoIntervalo = null;
+    }
+    return;
+  }
+
+  tarjeta.hidden = false;
+  const fin = estado.fin || Date.now();
+  valor.textContent = formatoDuracion(fin - estado.inicio);
+
+  if (estado.fin) {
+    titulo.textContent = "¡Rutina completada en!";
+    if (cronometroEntrenamientoIntervalo) {
+      clearInterval(cronometroEntrenamientoIntervalo);
+      cronometroEntrenamientoIntervalo = null;
+    }
+  } else {
+    titulo.textContent = "Tiempo de entrenamiento";
+    if (!cronometroEntrenamientoIntervalo) {
+      cronometroEntrenamientoIntervalo = setInterval(actualizarCronometroUI, 1000);
+    }
+  }
+}
+
 function toggleCompletado(id) {
   const clave = hoyISO();
   const hechosHoy = registro[clave] || [];
@@ -489,6 +564,7 @@ function toggleCompletado(id) {
     delete registro[clave];
   }
   guardarRegistro(registro);
+  verificarCronometroHoy(hechosHoy);
   verificarProgresionSemana();
   renderTodo();
   return marcada;
@@ -904,7 +980,7 @@ function iniciarTemporizador(segundosTotal) {
 }
 
 document.getElementById("iniciar-descanso").addEventListener("click", () => {
-  iniciarTemporizador(60);
+  iniciarTemporizador(30);
 });
 
 document.getElementById("cerrar-temporizador").addEventListener("click", () => {

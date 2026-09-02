@@ -491,6 +491,26 @@ h2 {
 
 .anillo-detalle { color: var(--texto-suave); font-size: 0.9em; }
 
+/* ---------- Cronómetro de entrenamiento ---------- */
+.tarjeta-cronometro {
+  background: var(--tarjeta);
+  border-radius: 18px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 0 4px 18px rgba(30,43,40,0.06);
+  margin-top: 12px;
+}
+
+.cronometro-icono { font-size: 1.6em; }
+
+.cronometro-info { display: flex; flex-direction: column; gap: 2px; }
+
+.cronometro-titulo { font-weight: 700; font-size: 0.85em; color: var(--texto-suave); }
+
+.cronometro-valor { font-weight: 800; font-size: 1.3em; font-variant-numeric: tabular-nums; color: var(--teal-oscuro); }
+
 /* ---------- Gráfico semanal ---------- */
 .semana-grafico {
   display: flex;
