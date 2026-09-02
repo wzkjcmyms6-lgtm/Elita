@@ -364,6 +364,43 @@ h2 {
   margin-top: 4px;
 }
 
+.resumen-tarjeta {
+  max-width: 340px;
+}
+
+.resumen-icono {
+  display: block;
+  font-size: 2.4em;
+  margin-bottom: 4px;
+}
+
+.resumen-fila {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 0;
+  border-top: 1px solid var(--borde);
+  text-align: left;
+}
+
+.resumen-etiqueta-fila {
+  font-size: 0.8em;
+  color: var(--texto-suave);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.resumen-valor-fila {
+  font-size: 1.2em;
+  font-weight: 800;
+  color: var(--teal-oscuro);
+}
+
+.resumen-tarjeta .btn-principal {
+  margin-top: 16px;
+}
+
 /* ---------- Semanas (gestión) ---------- */
 .semanas-ayuda {
   margin: -4px 0 14px;

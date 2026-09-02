@@ -244,6 +244,23 @@
     </div>
   </div>
 
+  <!-- RESUMEN DE FIN DE ENTRENAMIENTO -->
+  <div id="resumen-overlay" class="temporizador-overlay" hidden>
+    <div class="temporizador-tarjeta resumen-tarjeta">
+      <span class="resumen-icono" aria-hidden="true">🎉</span>
+      <p class="temporizador-titulo">Entrenamiento del día</p>
+      <div class="resumen-fila">
+        <span class="resumen-etiqueta-fila">Tiempo total</span>
+        <span class="resumen-valor-fila" id="resumen-tiempo">00:00</span>
+      </div>
+      <div class="resumen-fila">
+        <span class="resumen-etiqueta-fila">Músculos entrenados</span>
+        <span class="resumen-valor-fila" id="resumen-musculos">—</span>
+      </div>
+      <button type="button" id="cerrar-resumen" class="btn-principal">¡Genial!</button>
+    </div>
+  </div>
+
   <script type="module" src="app.js"></script>
 </body>
 </html>

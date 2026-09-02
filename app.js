@@ -103,8 +103,8 @@ function asegurarPerfilElita() {
   return elita;
 }
 
-function ejercicioInicial(nombre, detalle, categoria, video) {
-  return { id: crypto.randomUUID(), nombre, detalle, categoria, video: video || null };
+function ejercicioInicial(nombre, detalle, categoria, video, musculo) {
+  return { id: crypto.randomUUID(), nombre, detalle, categoria, video: video || null, musculo: musculo || null };
 }
 
 // --- Videos guía conocidos, usados también para completar ejercicios ya guardados ---
@@ -116,6 +116,19 @@ const VIDEOS_CONOCIDOS = {
   "Círculos de tobillo": "videos/circulos-tobillo.mp4",
 };
 
+// --- Músculo/zona entrenada por ejercicio principal, para el resumen de fin de entrenamiento ---
+const MUSCULOS_CONOCIDOS = {
+  "Sentadilla asistida en silla": "Piernas y glúteos",
+  "Puente de glúteo": "Glúteos y core",
+  "Remo sentada con banda": "Espalda",
+  "Elevación lateral de brazos": "Hombros",
+  "Báscula pélvica": "Core y espalda baja",
+  "Elevación de talones": "Pantorrillas",
+  "Extensión de tríceps con banda": "Brazos",
+  "Equilibrio en un pie": "Equilibrio",
+  "Rodillas al pecho alternadas": "Cadera y espalda",
+};
+
 function semana1Inicial() {
   return [
     // Calentamiento (todos los días, 8 min)
@@ -125,15 +138,15 @@ function semana1Inicial() {
     ejercicioInicial("Círculos de cadera", "1 min, de pie apoyada en silla", "calentamiento", VIDEOS_CONOCIDOS["Círculos de cadera"]),
     ejercicioInicial("Círculos de tobillo", "30 seg por lado, sentada", "calentamiento", VIDEOS_CONOCIDOS["Círculos de tobillo"]),
     // Bloque principal (2 series x 8-10, descanso 30 seg)
-    ejercicioInicial("Sentadilla asistida en silla", "2x8 · piernas y glúteos", "principal"),
-    ejercicioInicial("Puente de glúteo", "2x8 · glúteos y core", "principal"),
-    ejercicioInicial("Remo sentada con banda", "2x10 · espalda", "principal"),
-    ejercicioInicial("Elevación lateral de brazos", "2x10 · hombros", "principal"),
-    ejercicioInicial("Báscula pélvica", "2x10 · core y espalda baja", "principal"),
-    ejercicioInicial("Elevación de talones", "2x10 · pantorrillas, apoyada en silla", "principal"),
-    ejercicioInicial("Extensión de tríceps con banda", "2x10 · brazos, sentada", "principal"),
-    ejercicioInicial("Equilibrio en un pie", "2x10 seg por lado · equilibrio, apoyo en silla", "principal"),
-    ejercicioInicial("Rodillas al pecho alternadas", "2x6 por lado · cadera y espalda", "principal"),
+    ejercicioInicial("Sentadilla asistida en silla", "2x8 · piernas y glúteos", "principal", null, MUSCULOS_CONOCIDOS["Sentadilla asistida en silla"]),
+    ejercicioInicial("Puente de glúteo", "2x8 · glúteos y core", "principal", null, MUSCULOS_CONOCIDOS["Puente de glúteo"]),
+    ejercicioInicial("Remo sentada con banda", "2x10 · espalda", "principal", null, MUSCULOS_CONOCIDOS["Remo sentada con banda"]),
+    ejercicioInicial("Elevación lateral de brazos", "2x10 · hombros", "principal", null, MUSCULOS_CONOCIDOS["Elevación lateral de brazos"]),
+    ejercicioInicial("Báscula pélvica", "2x10 · core y espalda baja", "principal", null, MUSCULOS_CONOCIDOS["Báscula pélvica"]),
+    ejercicioInicial("Elevación de talones", "2x10 · pantorrillas, apoyada en silla", "principal", null, MUSCULOS_CONOCIDOS["Elevación de talones"]),
+    ejercicioInicial("Extensión de tríceps con banda", "2x10 · brazos, sentada", "principal", null, MUSCULOS_CONOCIDOS["Extensión de tríceps con banda"]),
+    ejercicioInicial("Equilibrio en un pie", "2x10 seg por lado · equilibrio, apoyo en silla", "principal", null, MUSCULOS_CONOCIDOS["Equilibrio en un pie"]),
+    ejercicioInicial("Rodillas al pecho alternadas", "2x6 por lado · cadera y espalda", "principal", null, MUSCULOS_CONOCIDOS["Rodillas al pecho alternadas"]),
     // Estiramiento final (8-10 min)
     ejercicioInicial("Estiramiento de cadera", "20 seg por lado, echada", "estiramiento"),
     ejercicioInicial("Estiramiento de gemelos", "20 seg por lado, apoyada en pared", "estiramiento"),
@@ -148,11 +161,15 @@ function normalizarEjercicio(ej) {
     // Formato anterior: series/reps numéricos -> se combinan en un solo texto libre.
     const series = ej.series || 1;
     const reps = ej.reps !== undefined ? ej.reps : "";
-    resultado = { id: ej.id, nombre: ej.nombre, detalle: `${series} series × ${reps}`, categoria: ej.categoria || "principal", video: ej.video || null };
+    resultado = { id: ej.id, nombre: ej.nombre, detalle: `${series} series × ${reps}`, categoria: ej.categoria || "principal", video: ej.video || null, musculo: ej.musculo || null };
   }
   const videoConocido = VIDEOS_CONOCIDOS[resultado.nombre];
   if (videoConocido && !resultado.video) {
     resultado = { ...resultado, video: videoConocido };
+  }
+  const musculoConocido = MUSCULOS_CONOCIDOS[resultado.nombre];
+  if (musculoConocido && !resultado.musculo) {
+    resultado = { ...resultado, musculo: musculoConocido };
   }
   return resultado;
 }
@@ -586,24 +603,55 @@ function formatoDuracion(ms) {
 
 const INACTIVIDAD_CRONOMETRO_MS = 3 * 60 * 1000;
 
+function primerEjercicioCalentamiento(lista) {
+  return lista.find((ej) => (ej.categoria || "principal") === "calentamiento") || lista[0];
+}
+
+function ultimoEjercicioEstiramiento(lista) {
+  const estiramientos = lista.filter((ej) => (ej.categoria || "principal") === "estiramiento");
+  return estiramientos.length > 0 ? estiramientos[estiramientos.length - 1] : lista[lista.length - 1];
+}
+
 function verificarCronometroHoy(hechosHoy) {
   const hoy = hoyISO();
   const listaActual = semanas[semanaActual] || [];
-  const completoHoy = diaCompletoParaLista(listaActual, hechosHoy);
+  if (listaActual.length === 0) return;
+
+  const primerEj = primerEjercicioCalentamiento(listaActual);
+  const ultimoEj = ultimoEjercicioEstiramiento(listaActual);
+  const primerEmpezado = primerEj && clavesSerie(primerEj).some((k) => hechosHoy.includes(k));
+  const ultimoCompleto = ultimoEj && clavesSerie(ultimoEj).every((k) => hechosHoy.includes(k));
+
   const ahora = Date.now();
   let cambio = false;
-  if (hechosHoy.length > 0 && !cronometros[hoy]) {
+  if (primerEmpezado && !cronometros[hoy]) {
     cronometros[hoy] = { inicio: ahora, ultimaActividad: ahora, fin: null };
     cambio = true;
   } else if (cronometros[hoy] && !cronometros[hoy].fin) {
     cronometros[hoy].ultimaActividad = ahora;
     cambio = true;
   }
-  if (cronometros[hoy] && completoHoy && !cronometros[hoy].fin) {
+  if (cronometros[hoy] && ultimoCompleto && !cronometros[hoy].fin) {
     cronometros[hoy].fin = ahora;
     cambio = true;
+    mostrarResumenEntrenamiento(listaActual, hechosHoy, cronometros[hoy]);
   }
   if (cambio) guardarCronometros(cronometros);
+}
+
+function mostrarResumenEntrenamiento(listaActual, hechosHoy, estadoCronometro) {
+  const duracion = formatoDuracion((estadoCronometro.fin || Date.now()) - estadoCronometro.inicio);
+  const musculos = [
+    ...new Set(
+      listaActual
+        .filter((ej) => (ej.categoria || "principal") === "principal" && ej.musculo)
+        .filter((ej) => clavesSerie(ej).every((k) => hechosHoy.includes(k)))
+        .map((ej) => ej.musculo)
+    ),
+  ];
+  document.getElementById("resumen-tiempo").textContent = duracion;
+  document.getElementById("resumen-musculos").textContent = musculos.length > 0 ? musculos.join(", ") : "—";
+  document.getElementById("resumen-overlay").hidden = false;
 }
 
 let cronometroEntrenamientoIntervalo = null;
@@ -1116,6 +1164,11 @@ function cerrarVideo() {
 }
 
 document.getElementById("cerrar-video").addEventListener("click", cerrarVideo);
+
+// --- Resumen de fin de entrenamiento ---
+document.getElementById("cerrar-resumen").addEventListener("click", () => {
+  document.getElementById("resumen-overlay").hidden = true;
+});
 
 // --- Inicio ---
 const idActivoGuardado = localStorage.getItem(CLAVE_PERFIL_ACTIVO);
