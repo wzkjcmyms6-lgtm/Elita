@@ -31,20 +31,47 @@ function asegurarPerfilElita() {
   return elita;
 }
 
-function cargarEjerciciosDe(perfilId) {
+function cargarSemanasDe(perfilId) {
   const datos = localStorage.getItem(`mis-ejercicios-datos-${perfilId}`);
-  if (datos) return JSON.parse(datos);
-  const iniciales = [
-    { id: crypto.randomUUID(), nombre: "Caminar", series: 1, reps: 20 },
-    { id: crypto.randomUUID(), nombre: "Estiramientos", series: 3, reps: 10 },
-    { id: crypto.randomUUID(), nombre: "Sentadillas", series: 3, reps: 10 },
-  ];
+  if (datos) {
+    const analizado = JSON.parse(datos);
+    if (Array.isArray(analizado)) {
+      // Formato anterior: una sola lista de ejercicios -> pasa a ser la Semana 1.
+      const migrado = { 1: analizado, 2: [], 3: [], 4: [] };
+      localStorage.setItem(`mis-ejercicios-datos-${perfilId}`, JSON.stringify(migrado));
+      return migrado;
+    }
+    return analizado;
+  }
+  const iniciales = {
+    1: [
+      { id: crypto.randomUUID(), nombre: "Caminar", series: 1, reps: 20 },
+      { id: crypto.randomUUID(), nombre: "Estiramientos", series: 3, reps: 10 },
+      { id: crypto.randomUUID(), nombre: "Sentadillas", series: 3, reps: 10 },
+    ],
+    2: [],
+    3: [],
+    4: [],
+  };
   localStorage.setItem(`mis-ejercicios-datos-${perfilId}`, JSON.stringify(iniciales));
   return iniciales;
 }
 
-function guardarEjercicios(lista) {
-  localStorage.setItem(`mis-ejercicios-datos-${perfilActivo.id}`, JSON.stringify(lista));
+function guardarSemanas() {
+  localStorage.setItem(`mis-ejercicios-datos-${perfilActivo.id}`, JSON.stringify(semanas));
+}
+
+function cargarSemanaActualDe(perfilId) {
+  const n = Number(localStorage.getItem(`mis-ejercicios-semana-actual-${perfilId}`));
+  return n >= 1 && n <= 4 ? n : 1;
+}
+
+function guardarSemanaActual() {
+  localStorage.setItem(`mis-ejercicios-semana-actual-${perfilActivo.id}`, String(semanaActual));
+}
+
+function todosLosEjercicios() {
+  return [1, 2, 3, 4].flatMap((n) => semanas[n] || []);
 }
 
 function cargarRegistroDe(perfilId) {
@@ -58,7 +85,8 @@ function guardarRegistro(registro) {
 
 let perfiles = cargarPerfiles();
 let perfilActivo = null;
-let ejercicios = [];
+let semanas = { 1: [], 2: [], 3: [], 4: [] };
+let semanaActual = 1;
 let registro = {};
 let mesVisible = new Date();
 
@@ -206,7 +234,8 @@ function iniciarApp(id) {
     mostrarPantallaPerfil();
     return;
   }
-  ejercicios = cargarEjerciciosDe(id);
+  semanas = cargarSemanasDe(id);
+  semanaActual = cargarSemanaActualDe(id);
   registro = cargarRegistroDe(id);
   mesVisible = new Date();
   document.getElementById("pantalla-perfil").hidden = true;
@@ -220,6 +249,7 @@ function iniciarApp(id) {
     day: "numeric",
     month: "long",
   });
+  document.getElementById("semana-destino").value = String(semanaActual);
   renderSugerencias();
   renderTodo();
 }
@@ -251,16 +281,19 @@ document.querySelectorAll(".acceso-btn").forEach((btn) => {
 function renderHoy() {
   const contenedor = document.getElementById("lista-hoy");
   const mensajeVacio = document.getElementById("sin-ejercicios-msg");
+  const listaActual = semanas[semanaActual] || [];
   contenedor.innerHTML = "";
+
+  document.getElementById("semana-actual-pill").textContent = `Semana ${semanaActual}`;
 
   const clave = hoyISO();
   const hechosHoy = registro[clave] || [];
 
-  if (ejercicios.length === 0) {
+  if (listaActual.length === 0) {
     mensajeVacio.hidden = false;
   } else {
     mensajeVacio.hidden = true;
-    ejercicios.forEach((ej) => {
+    listaActual.forEach((ej) => {
       const hecho = hechosHoy.includes(ej.id);
       const card = document.createElement("div");
       card.className = "ejercicio-card" + (hecho ? " hecho" : "");
@@ -279,8 +312,8 @@ function renderHoy() {
     });
   }
 
-  const total = ejercicios.length;
-  const hechos = hechosHoy.filter((id) => ejercicios.some((e) => e.id === id)).length;
+  const total = listaActual.length;
+  const hechos = hechosHoy.filter((id) => listaActual.some((e) => e.id === id)).length;
   const porcentaje = total > 0 ? Math.round((hechos / total) * 100) : 0;
 
   document.getElementById("anillo-hoy-wrap").innerHTML =
@@ -289,6 +322,31 @@ function renderHoy() {
   document.getElementById("anillo-hoy-detalle").textContent = `${hechos} de ${total} ejercicios`;
 
   renderGraficoSemana("semana-grafico");
+}
+
+function contarCompletadosAlgunaVez(lista) {
+  const completados = new Set();
+  Object.values(registro).forEach((ids) => ids.forEach((id) => completados.add(id)));
+  return lista.filter((ej) => completados.has(ej.id)).length;
+}
+
+function verificarProgresionSemana() {
+  const lista = semanas[semanaActual] || [];
+  if (lista.length === 0) return;
+  if (contarCompletadosAlgunaVez(lista) < lista.length) return;
+
+  if (semanaActual < 4) {
+    const completada = semanaActual;
+    semanaActual++;
+    guardarSemanaActual();
+    document.getElementById("semana-destino").value = String(semanaActual);
+    alert(`¡Felicitaciones! Completaste la Semana ${completada}. Ahora te toca la Semana ${semanaActual} 💪`);
+  } else {
+    semanaActual = 1;
+    guardarSemanaActual();
+    document.getElementById("semana-destino").value = String(semanaActual);
+    alert("¡Felicitaciones! Completaste las 4 semanas de rutina. ¡Volvés a empezar en la Semana 1! 🎉");
+  }
 }
 
 function toggleCompletado(id) {
@@ -306,7 +364,8 @@ function toggleCompletado(id) {
     delete registro[clave];
   }
   guardarRegistro(registro);
-  renderHoy();
+  verificarProgresionSemana();
+  renderTodo();
 }
 
 function diaCompletado(fechaISO) {
@@ -432,7 +491,7 @@ function renderProgreso() {
 
   const { contadorSemana, ejerciciosSemana } = calcularResumenSemana();
   const racha = calcularRachaActual();
-  const metaEjercicios = Math.max(1, ejercicios.length * 7);
+  const metaEjercicios = Math.max(1, (semanas[semanaActual] || []).length * 7);
 
   const anillos = [
     { porcentaje: (contadorSemana / 7) * 100, color: "#2f9e8f" },
@@ -478,21 +537,25 @@ function renderSugerencias() {
     chip.className = "sugerencia-chip";
     chip.textContent = `+ ${s.nombre}`;
     chip.addEventListener("click", () => {
-      agregarEjercicio(s.nombre, s.series, s.reps);
+      const semanaDestino = Number(document.getElementById("semana-destino").value);
+      agregarEjercicio(s.nombre, s.series, s.reps, semanaDestino);
     });
     contenedor.appendChild(chip);
   });
 }
 
-function agregarEjercicio(nombre, series, reps) {
-  ejercicios.push({
+function agregarEjercicio(nombre, series, reps, semanaDestino) {
+  if (!semanas[semanaDestino]) semanas[semanaDestino] = [];
+  semanas[semanaDestino].push({
     id: crypto.randomUUID(),
     nombre: nombre.trim(),
     series: Number(series) || 1,
     reps: Number(reps) || 1,
   });
-  guardarEjercicios(ejercicios);
+  guardarSemanas();
   renderTodo();
+  const acordeon = document.querySelector(`.semana-acordeon[data-semana="${semanaDestino}"]`);
+  if (acordeon) acordeon.open = true;
 }
 
 document.getElementById("form-ejercicio").addEventListener("submit", (e) => {
@@ -500,40 +563,67 @@ document.getElementById("form-ejercicio").addEventListener("submit", (e) => {
   const nombre = document.getElementById("nombre-ejercicio").value;
   const series = document.getElementById("series-ejercicio").value;
   const reps = document.getElementById("reps-ejercicio").value;
+  const semanaDestino = Number(document.getElementById("semana-destino").value);
   if (!nombre.trim()) return;
-  agregarEjercicio(nombre, series, reps);
+  agregarEjercicio(nombre, series, reps, semanaDestino);
   e.target.reset();
+  document.getElementById("semana-destino").value = String(semanaDestino);
   document.getElementById("series-ejercicio").value = 3;
   document.getElementById("reps-ejercicio").value = 10;
 });
 
-function renderGestion() {
-  const contenedor = document.getElementById("lista-gestion");
+function renderSemanas() {
+  const contenedor = document.getElementById("lista-semanas");
+  const abiertasAntes = new Set(
+    Array.from(contenedor.querySelectorAll(".semana-acordeon[open]")).map((d) => d.dataset.semana)
+  );
   contenedor.innerHTML = "";
-  if (ejercicios.length === 0) {
-    contenedor.innerHTML = '<p class="msg-vacio">Aún no agregaste ningún ejercicio.</p>';
-    return;
-  }
-  ejercicios.forEach((ej) => {
-    const card = document.createElement("div");
-    card.className = "gestion-card";
-    card.innerHTML = `
-      <span class="ejercicio-icono ${tileEjercicio(ej.id)}">${iconoEjercicio(ej.nombre)}</span>
-      <div class="ejercicio-info">
-        <span class="ejercicio-nombre">${escapeHtml(ej.nombre)}</span>
-        <span class="ejercicio-detalle">${ej.series} series × ${ej.reps} repeticiones</span>
-      </div>
-      <button class="eliminar-btn" aria-label="Eliminar ${escapeHtml(ej.nombre)}">🗑</button>
+
+  for (let n = 1; n <= 4; n++) {
+    const lista = semanas[n] || [];
+    const completados = contarCompletadosAlgunaVez(lista);
+
+    const detalle = document.createElement("details");
+    detalle.className = "semana-acordeon";
+    detalle.dataset.semana = String(n);
+    detalle.open = abiertasAntes.size > 0 ? abiertasAntes.has(String(n)) : n === semanaActual;
+
+    detalle.innerHTML = `
+      <summary class="semana-resumen">
+        <span class="semana-nombre">Semana ${n}${n === semanaActual ? '<span class="semana-badge">Actual</span>' : ""}</span>
+        <span class="semana-progreso">${completados}/${lista.length}</span>
+      </summary>
+      <div class="semana-cuerpo"></div>
     `;
-    card.querySelector(".eliminar-btn").addEventListener("click", () => {
-      if (confirm(`¿Eliminar "${ej.nombre}"?`)) {
-        ejercicios = ejercicios.filter((e) => e.id !== ej.id);
-        guardarEjercicios(ejercicios);
-        renderTodo();
-      }
-    });
-    contenedor.appendChild(card);
-  });
+
+    const cuerpo = detalle.querySelector(".semana-cuerpo");
+    if (lista.length === 0) {
+      cuerpo.innerHTML = '<p class="msg-vacio">Todavía no hay ejercicios en esta semana.</p>';
+    } else {
+      lista.forEach((ej) => {
+        const card = document.createElement("div");
+        card.className = "gestion-card";
+        card.innerHTML = `
+          <span class="ejercicio-icono ${tileEjercicio(ej.id)}">${iconoEjercicio(ej.nombre)}</span>
+          <div class="ejercicio-info">
+            <span class="ejercicio-nombre">${escapeHtml(ej.nombre)}</span>
+            <span class="ejercicio-detalle">${ej.series} series × ${ej.reps} repeticiones</span>
+          </div>
+          <button class="eliminar-btn" aria-label="Eliminar ${escapeHtml(ej.nombre)}">🗑</button>
+        `;
+        card.querySelector(".eliminar-btn").addEventListener("click", () => {
+          if (confirm(`¿Eliminar "${ej.nombre}"?`)) {
+            semanas[n] = semanas[n].filter((e) => e.id !== ej.id);
+            guardarSemanas();
+            renderTodo();
+          }
+        });
+        cuerpo.appendChild(card);
+      });
+    }
+
+    contenedor.appendChild(detalle);
+  }
 }
 
 // --- Pestaña Perfil (Elita) ---
@@ -548,7 +638,7 @@ function renderPerfil() {
 
 function renderTodo() {
   renderHoy();
-  renderGestion();
+  renderSemanas();
   if (document.getElementById("tab-progreso").classList.contains("active")) {
     renderProgreso();
   }
@@ -560,7 +650,7 @@ function renderTodo() {
 // --- App de Juan Manolo (solo lectura del progreso de Elita) ---
 function iniciarJuan() {
   asegurarPerfilElita();
-  ejercicios = cargarEjerciciosDe(ID_ELITA);
+  semanas = cargarSemanasDe(ID_ELITA);
   registro = cargarRegistroDe(ID_ELITA);
   mesVisible = new Date();
 
@@ -610,7 +700,7 @@ function renderHistorial() {
   const vacio = document.getElementById("jn-historial-vacio");
   contenedor.innerHTML = "";
 
-  const nombresPorId = new Map(ejercicios.map((ej) => [ej.id, ej.nombre]));
+  const nombresPorId = new Map(todosLosEjercicios().map((ej) => [ej.id, ej.nombre]));
   const dias = Object.keys(registro)
     .filter((f) => registro[f].length > 0)
     .sort()

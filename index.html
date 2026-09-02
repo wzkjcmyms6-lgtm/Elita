@@ -62,6 +62,8 @@
     <main class="app-main">
       <!-- TAB: HOY -->
       <section id="tab-hoy" class="tab-panel active">
+        <div class="semana-actual-pill" id="semana-actual-pill">Semana 1</div>
+
         <div class="tarjeta-anillo">
           <div class="anillo-svg-wrap" id="anillo-hoy-wrap"></div>
           <div class="anillo-info">
@@ -85,7 +87,7 @@
           </button>
           <button type="button" class="acceso-btn" data-ir="ejercicios">
             <span class="acceso-icono tile-oro">📋</span>
-            <span>Mis ejercicios</span>
+            <span>Ver semanas</span>
           </button>
           <button type="button" class="acceso-btn" data-ir="perfil">
             <span class="acceso-icono tile-teal">👤</span>
@@ -97,17 +99,24 @@
         <div id="lista-hoy" class="lista-ejercicios"></div>
 
         <p id="sin-ejercicios-msg" class="msg-vacio" hidden>
-          Todavía no tienes ejercicios. Andá a la pestaña "Ejercicios" para agregar algunos.
+          Todavía no tienes ejercicios en esta semana. Andá a la pestaña "Semanas" para agregar algunos.
         </p>
       </section>
 
-      <!-- TAB: EJERCICIOS -->
+      <!-- TAB: SEMANAS -->
       <section id="tab-ejercicios" class="tab-panel">
-        <h2>Mis ejercicios</h2>
-        <div id="lista-gestion" class="lista-gestion"></div>
+        <h2>Rutina por semanas</h2>
+        <p class="semanas-ayuda">Tocá una semana para ver o editar sus ejercicios. Al completar todos los de la semana activa, se pasa sola a la siguiente.</p>
+        <div id="lista-semanas" class="lista-semanas"></div>
 
         <h2>Agregar un ejercicio</h2>
         <form id="form-ejercicio" class="form-ejercicio">
+          <select id="semana-destino" class="select-semana">
+            <option value="1">Agregar a Semana 1</option>
+            <option value="2">Agregar a Semana 2</option>
+            <option value="3">Agregar a Semana 3</option>
+            <option value="4">Agregar a Semana 4</option>
+          </select>
           <input type="text" id="nombre-ejercicio" placeholder="Nombre (ej. Caminar)" required maxlength="40">
           <div class="fila-doble">
             <input type="number" id="series-ejercicio" placeholder="Series" min="1" value="3">
@@ -174,7 +183,7 @@
       </button>
       <button class="nav-btn" data-tab="ejercicios">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="12" x2="18" y2="12"/><rect x="2.5" y="9" width="3.5" height="6" rx="1"/><rect x="18" y="9" width="3.5" height="6" rx="1"/><rect x="0.5" y="10.5" width="2" height="3" rx="0.6"/><rect x="21" y="10.5" width="2" height="3" rx="0.6"/></svg>
-        <span>Ejercicios</span>
+        <span>Semanas</span>
       </button>
       <button class="nav-btn" data-tab="progreso">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="20" x2="4" y2="12"/><line x1="10" y1="20" x2="10" y2="6"/><line x1="16" y1="20" x2="16" y2="14"/><line x1="21" y1="20" x2="3" y2="20"/></svg>

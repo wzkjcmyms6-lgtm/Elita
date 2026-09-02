@@ -258,6 +258,101 @@ h2 {
   color: var(--texto);
 }
 
+.semana-actual-pill {
+  display: inline-block;
+  background: var(--teal-suave);
+  color: var(--teal-oscuro);
+  font-weight: 800;
+  font-size: 0.82em;
+  padding: 6px 14px;
+  border-radius: 999px;
+  margin-bottom: 14px;
+}
+
+/* ---------- Semanas (gestión) ---------- */
+.semanas-ayuda {
+  margin: -4px 0 14px;
+  color: var(--texto-suave);
+  font-size: 0.88em;
+}
+
+.lista-semanas {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.semana-acordeon {
+  background: var(--tarjeta);
+  border-radius: 16px;
+  box-shadow: 0 4px 18px rgba(30,43,40,0.06);
+  overflow: hidden;
+}
+
+.semana-resumen {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 16px;
+  cursor: pointer;
+  list-style: none;
+  font-weight: 700;
+}
+
+.semana-resumen::-webkit-details-marker { display: none; }
+.semana-resumen::marker { content: ""; }
+
+.semana-resumen::after {
+  content: "▾";
+  color: var(--texto-suave);
+  transition: transform 0.15s;
+  flex-shrink: 0;
+}
+
+.semana-acordeon[open] .semana-resumen::after {
+  transform: rotate(180deg);
+}
+
+.semana-nombre {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.semana-badge {
+  background: var(--coral);
+  color: #fff;
+  font-size: 0.7em;
+  font-weight: 800;
+  padding: 3px 9px;
+  border-radius: 999px;
+}
+
+.semana-progreso {
+  color: var(--texto-suave);
+  font-weight: 700;
+  font-size: 0.88em;
+}
+
+.semana-cuerpo {
+  padding: 0 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.select-semana {
+  font-family: inherit;
+  font-size: 1em;
+  padding: 12px;
+  border: 2px solid var(--borde);
+  border-radius: 12px;
+  background: var(--tarjeta);
+  color: var(--texto);
+}
+
 /* ---------- Anillo de hoy ---------- */
 .tarjeta-anillo {
   background: var(--tarjeta);
