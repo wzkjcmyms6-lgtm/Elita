@@ -59,6 +59,7 @@ function aplicarDatosRemotos(datos) {
   }
   if (datos.cronometros) {
     cronometros = datos.cronometros;
+    Object.keys(cronometros).forEach((iso) => { cronometros[iso] = normalizarCronometro(cronometros[iso]); });
     try { localStorage.setItem(`mis-ejercicios-cronometro-${ID_ELITA}`, JSON.stringify(cronometros)); } catch (e) {}
   }
 
@@ -231,7 +232,9 @@ function guardarRegistro(registro) {
 
 function cargarCronometrosDe(perfilId) {
   const datos = localStorage.getItem(`mis-ejercicios-cronometro-${perfilId}`);
-  return datos ? JSON.parse(datos) : {};
+  const cronometros = datos ? JSON.parse(datos) : {};
+  Object.keys(cronometros).forEach((iso) => { cronometros[iso] = normalizarCronometro(cronometros[iso]); });
+  return cronometros;
 }
 
 function guardarCronometros(cronometros) {
@@ -614,6 +617,29 @@ function ultimoEjercicioEstiramiento(lista) {
   return estiramientos.length > 0 ? estiramientos[estiramientos.length - 1] : lista[lista.length - 1];
 }
 
+// El cronómetro guarda el tiempo ya acumulado (acumuladoMs) más, mientras está
+// corriendo, el inicio del tramo actual (segmentoInicio). Al pausarse por
+// inactividad, ese tramo se suma a acumuladoMs y segmentoInicio queda en null;
+// al reanudar (marcar otro ejercicio) se abre un tramo nuevo, sin contar el
+// tiempo que estuvo pausado.
+function crearCronometroInicial(ahora) {
+  return { acumuladoMs: 0, segmentoInicio: ahora, ultimaActividad: ahora, fin: null };
+}
+
+function normalizarCronometro(estado) {
+  if (estado.segmentoInicio !== undefined) return estado;
+  // Formato anterior: { inicio, ultimaActividad, fin }.
+  if (estado.fin) {
+    return { acumuladoMs: estado.fin - estado.inicio, segmentoInicio: null, ultimaActividad: estado.ultimaActividad || estado.fin, fin: estado.fin };
+  }
+  return { acumuladoMs: 0, segmentoInicio: estado.inicio, ultimaActividad: estado.ultimaActividad || estado.inicio, fin: null };
+}
+
+function duracionActual(estado, ahora = Date.now()) {
+  const enCurso = estado.segmentoInicio ? ahora - estado.segmentoInicio : 0;
+  return estado.acumuladoMs + enCurso;
+}
+
 function verificarCronometroHoy(hechosHoy) {
   const hoy = hoyISO();
   const listaActual = semanas[semanaActual] || [];
@@ -626,23 +652,33 @@ function verificarCronometroHoy(hechosHoy) {
 
   const ahora = Date.now();
   let cambio = false;
+
   if (primerEmpezado && !cronometros[hoy]) {
-    cronometros[hoy] = { inicio: ahora, ultimaActividad: ahora, fin: null };
+    cronometros[hoy] = crearCronometroInicial(ahora);
     cambio = true;
-  } else if (cronometros[hoy] && !cronometros[hoy].fin) {
-    cronometros[hoy].ultimaActividad = ahora;
-    cambio = true;
+  } else if (cronometros[hoy]) {
+    cronometros[hoy] = normalizarCronometro(cronometros[hoy]);
+    const estado = cronometros[hoy];
+    if (!estado.fin) {
+      if (!estado.segmentoInicio) estado.segmentoInicio = ahora; // reanudar tras una pausa
+      estado.ultimaActividad = ahora;
+      cambio = true;
+    }
   }
+
   if (cronometros[hoy] && ultimoCompleto && !cronometros[hoy].fin) {
-    cronometros[hoy].fin = ahora;
+    const estado = cronometros[hoy];
+    estado.acumuladoMs = duracionActual(estado, ahora);
+    estado.segmentoInicio = null;
+    estado.fin = ahora;
     cambio = true;
-    mostrarResumenEntrenamiento(listaActual, hechosHoy, cronometros[hoy]);
+    mostrarResumenEntrenamiento(listaActual, hechosHoy, estado);
   }
   if (cambio) guardarCronometros(cronometros);
 }
 
 function mostrarResumenEntrenamiento(listaActual, hechosHoy, estadoCronometro) {
-  const duracion = formatoDuracion((estadoCronometro.fin || Date.now()) - estadoCronometro.inicio);
+  const duracion = formatoDuracion(duracionActual(estadoCronometro));
   const musculos = [
     ...new Set(
       listaActual
@@ -663,9 +699,8 @@ function actualizarCronometroUI() {
   const valor = document.getElementById("cronometro-valor");
   const titulo = document.getElementById("cronometro-titulo");
   const hoy = hoyISO();
-  const estado = cronometros[hoy];
 
-  if (!estado) {
+  if (!cronometros[hoy]) {
     tarjeta.hidden = true;
     if (cronometroEntrenamientoIntervalo) {
       clearInterval(cronometroEntrenamientoIntervalo);
@@ -674,14 +709,19 @@ function actualizarCronometroUI() {
     return;
   }
 
-  if (!estado.fin && Date.now() - estado.ultimaActividad >= INACTIVIDAD_CRONOMETRO_MS) {
-    estado.fin = estado.ultimaActividad + INACTIVIDAD_CRONOMETRO_MS;
+  cronometros[hoy] = normalizarCronometro(cronometros[hoy]);
+  const estado = cronometros[hoy];
+
+  if (!estado.fin && estado.segmentoInicio && Date.now() - estado.ultimaActividad >= INACTIVIDAD_CRONOMETRO_MS) {
+    // Auto-pausar: se acredita el tiempo hasta el corte de inactividad, no hasta ahora.
+    const corte = estado.ultimaActividad + INACTIVIDAD_CRONOMETRO_MS;
+    estado.acumuladoMs += corte - estado.segmentoInicio;
+    estado.segmentoInicio = null;
     guardarCronometros(cronometros);
   }
 
   tarjeta.hidden = false;
-  const fin = estado.fin || Date.now();
-  valor.textContent = formatoDuracion(fin - estado.inicio);
+  valor.textContent = formatoDuracion(duracionActual(estado));
 
   const listaActual = semanas[semanaActual] || [];
   const hechosHoy = registro[hoy] || [];
@@ -689,6 +729,12 @@ function actualizarCronometroUI() {
 
   if (estado.fin) {
     titulo.textContent = completoHoy ? "¡Rutina completada en!" : "Entrenamiento pausado";
+    if (cronometroEntrenamientoIntervalo) {
+      clearInterval(cronometroEntrenamientoIntervalo);
+      cronometroEntrenamientoIntervalo = null;
+    }
+  } else if (!estado.segmentoInicio) {
+    titulo.textContent = "Entrenamiento pausado";
     if (cronometroEntrenamientoIntervalo) {
       clearInterval(cronometroEntrenamientoIntervalo);
       cronometroEntrenamientoIntervalo = null;
@@ -774,7 +820,7 @@ function renderGraficoSemana(contenedorId) {
     fecha.setDate(fecha.getDate() - i);
     const iso = new Date(fecha.getTime() - fecha.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
     const cronDia = cronometros[iso];
-    const duracionMs = cronDia ? (cronDia.fin || Date.now()) - cronDia.inicio : 0;
+    const duracionMs = cronDia ? duracionActual(normalizarCronometro(cronDia)) : 0;
     dias.push({ fecha, iso, duracionMs, activo: diaCompletado(iso) });
   }
 
@@ -1085,8 +1131,8 @@ function renderHistorial() {
     const basesUnicas = [...new Set(registro[iso].map(idBaseDeClave))];
     const nombres = basesUnicas.map((id) => nombresPorId.get(id) || "Ejercicio eliminado");
 
-    const cronDia = cronometros[iso];
-    const duracionTexto = cronDia ? formatoDuracion((cronDia.fin || Date.now()) - cronDia.inicio) : "";
+    const cronDia = cronometros[iso] ? normalizarCronometro(cronometros[iso]) : null;
+    const duracionTexto = cronDia ? formatoDuracion(duracionActual(cronDia)) : "";
 
     const card = document.createElement("div");
     card.className = "ejercicio-card hecho";
