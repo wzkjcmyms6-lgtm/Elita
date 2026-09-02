@@ -1,3 +1,74 @@
+// --- Sincronización en la nube (Firebase Firestore) ---
+// Todo esto corre en segundo plano sin bloquear el arranque de la app: si no
+// hay internet o falla la carga, la app sigue funcionando solo con localStorage.
+let docElita = null;
+let firestoreSetDoc = null;
+
+(async () => {
+  try {
+    const { initializeApp } = await import("https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js");
+    const { initializeFirestore, persistentLocalCache, doc, setDoc, onSnapshot } = await import(
+      "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js"
+    );
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCoUrHkRDCE_eJ_dcPMJ74esGgTUzpXn38",
+      authDomain: "elita---ejercicios.firebaseapp.com",
+      projectId: "elita---ejercicios",
+      storageBucket: "elita---ejercicios.firebasestorage.app",
+      messagingSenderId: "513889275392",
+      appId: "1:513889275392:web:a6b732dbf8edfcced6d2e5",
+    };
+
+    const firebaseApp = initializeApp(firebaseConfig);
+    const db = initializeFirestore(firebaseApp, { localCache: persistentLocalCache() });
+    docElita = doc(db, "progreso", "elita");
+    firestoreSetDoc = setDoc;
+
+    onSnapshot(
+      docElita,
+      (snap) => { if (snap.exists()) aplicarDatosRemotos(snap.data()); },
+      () => {}
+    );
+  } catch (e) {
+    docElita = null;
+    firestoreSetDoc = null;
+  }
+})();
+
+function sincronizarANube() {
+  if (!docElita || !firestoreSetDoc) return;
+  firestoreSetDoc(docElita, { semanas, semanaActual, registro, cronometros }, { merge: true }).catch(() => {});
+}
+
+function aplicarDatosRemotos(datos) {
+  if (!datos) return;
+  if (datos.semanas) {
+    semanas = datos.semanas;
+    try { localStorage.setItem(`mis-ejercicios-datos-${ID_ELITA}`, JSON.stringify(semanas)); } catch (e) {}
+  }
+  if (datos.semanaActual) {
+    semanaActual = datos.semanaActual;
+    try { localStorage.setItem(`mis-ejercicios-semana-actual-${ID_ELITA}`, String(semanaActual)); } catch (e) {}
+  }
+  if (datos.registro) {
+    registro = datos.registro;
+    try { localStorage.setItem(`mis-ejercicios-registro-${ID_ELITA}`, JSON.stringify(registro)); } catch (e) {}
+  }
+  if (datos.cronometros) {
+    cronometros = datos.cronometros;
+    try { localStorage.setItem(`mis-ejercicios-cronometro-${ID_ELITA}`, JSON.stringify(cronometros)); } catch (e) {}
+  }
+
+  if (perfilActivo && perfilActivo.id === ID_ELITA && !document.getElementById("app-contenido").hidden) {
+    renderTodo();
+  }
+  if (!document.getElementById("app-juan").hidden) {
+    const tabJuanActivo = document.querySelector("#app-juan .nav-btn.active")?.dataset.tabJuan || "calendario";
+    irATabJuan(tabJuanActivo);
+  }
+}
+
 // --- Configuración fija ---
 const ID_ELITA = "elita";
 const CLAVE_JUAN = "1925";
@@ -111,6 +182,7 @@ function cargarSemanasDe(perfilId) {
 
 function guardarSemanas() {
   localStorage.setItem(`mis-ejercicios-datos-${perfilActivo.id}`, JSON.stringify(semanas));
+  sincronizarANube();
 }
 
 function cargarSemanaActualDe(perfilId) {
@@ -120,6 +192,7 @@ function cargarSemanaActualDe(perfilId) {
 
 function guardarSemanaActual() {
   localStorage.setItem(`mis-ejercicios-semana-actual-${perfilActivo.id}`, String(semanaActual));
+  sincronizarANube();
 }
 
 function todosLosEjercicios() {
@@ -133,6 +206,7 @@ function cargarRegistroDe(perfilId) {
 
 function guardarRegistro(registro) {
   localStorage.setItem(`mis-ejercicios-registro-${perfilActivo.id}`, JSON.stringify(registro));
+  sincronizarANube();
 }
 
 function cargarCronometrosDe(perfilId) {
@@ -142,6 +216,7 @@ function cargarCronometrosDe(perfilId) {
 
 function guardarCronometros(cronometros) {
   localStorage.setItem(`mis-ejercicios-cronometro-${perfilActivo.id}`, JSON.stringify(cronometros));
+  sincronizarANube();
 }
 
 let perfiles = cargarPerfiles();
@@ -338,6 +413,7 @@ function iniciarApp(id) {
   semanaActual = cargarSemanaActualDe(id);
   registro = cargarRegistroDe(id);
   cronometros = cargarCronometrosDe(id);
+  sincronizarANube();
   mesVisible = new Date();
   document.getElementById("pantalla-perfil").hidden = true;
   document.getElementById("pantalla-clave").hidden = true;
