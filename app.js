@@ -47,7 +47,13 @@ function aplicarDatosRemotos(datos) {
   if (!datos) return;
   if (datos.semanas) {
     semanas = datos.semanas;
+    let migrado = false;
+    if (semanas[1] && semanas[1].some((ej) => ESTIRAMIENTO_ANTERIOR.includes(ej.nombre))) {
+      semanas[1] = semanas[1].filter((ej) => !ESTIRAMIENTO_ANTERIOR.includes(ej.nombre)).concat(estiramientoFinalSemana1());
+      migrado = true;
+    }
     try { localStorage.setItem(`mis-ejercicios-datos-${ID_ELITA}`, JSON.stringify(semanas)); } catch (e) {}
+    if (migrado) sincronizarANube();
   }
   if (datos.semanaActual) {
     semanaActual = datos.semanaActual;
@@ -160,10 +166,18 @@ function semana1Inicial() {
     ejercicioInicial("Equilibrio en un pie", "2x10 seg por lado · equilibrio, apoyo en silla", "principal", VIDEOS_CONOCIDOS["Equilibrio en un pie"], MUSCULOS_CONOCIDOS["Equilibrio en un pie"]),
     ejercicioInicial("Rodillas al pecho alternadas", "2x6 por lado · cadera y espalda", "principal", VIDEOS_CONOCIDOS["Rodillas al pecho alternadas"], MUSCULOS_CONOCIDOS["Rodillas al pecho alternadas"]),
     // Estiramiento final (8-10 min)
-    ejercicioInicial("Estiramiento de cadera", "20 seg por lado, echada", "estiramiento"),
-    ejercicioInicial("Estiramiento de gemelos", "20 seg por lado, apoyada en pared", "estiramiento"),
-    ejercicioInicial("Estiramiento de hombros", "20 seg por lado, sentada", "estiramiento"),
-    ejercicioInicial("Respiración profunda", "2 min, echada con rodillas flexionadas", "estiramiento"),
+    ...estiramientoFinalSemana1(),
+  ];
+}
+
+const ESTIRAMIENTO_ANTERIOR = ["Estiramiento de cadera", "Estiramiento de gemelos", "Estiramiento de hombros", "Respiración profunda"];
+
+function estiramientoFinalSemana1() {
+  return [
+    ejercicioInicial("Estiramiento de cuello", "20 seg por lado, sentada, sin forzar", "estiramiento"),
+    ejercicioInicial("Estiramiento de espalda alta", "20-30 seg, sentada, abrazando las rodillas", "estiramiento"),
+    ejercicioInicial("Estiramiento de isquiotibiales", "20 seg por lado, sentada al borde de la silla", "estiramiento"),
+    ejercicioInicial("Estiramiento de pecho y hombros", "20 seg por lado, apoyada en pared", "estiramiento"),
   ];
 }
 
@@ -202,6 +216,12 @@ function cargarSemanasDe(perfilId) {
         return normalizado;
       });
     });
+    if (analizado[1] && analizado[1].some((ej) => ESTIRAMIENTO_ANTERIOR.includes(ej.nombre))) {
+      analizado[1] = analizado[1]
+        .filter((ej) => !ESTIRAMIENTO_ANTERIOR.includes(ej.nombre))
+        .concat(estiramientoFinalSemana1());
+      cambio = true;
+    }
     if (cambio) localStorage.setItem(`mis-ejercicios-datos-${perfilId}`, JSON.stringify(analizado));
     return analizado;
   }
