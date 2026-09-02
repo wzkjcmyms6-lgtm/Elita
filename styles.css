@@ -279,25 +279,6 @@ h2 {
 }
 
 /* ---------- Descanso / temporizador ---------- */
-.btn-descanso {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  background: linear-gradient(135deg, var(--coral), #d9663a);
-  color: #fff;
-  border: none;
-  padding: 14px;
-  border-radius: 14px;
-  font-family: inherit;
-  font-size: 1.02em;
-  font-weight: 700;
-  cursor: pointer;
-  margin: 14px 0 4px;
-  box-shadow: 0 6px 18px rgba(239,138,95,0.3);
-}
-
 .temporizador-overlay {
   position: fixed;
   inset: 0;

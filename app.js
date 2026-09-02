@@ -667,7 +667,6 @@ function actualizarCronometroUI() {
 
   if (!estado) {
     tarjeta.hidden = true;
-    document.getElementById("iniciar-descanso").hidden = false;
     if (cronometroEntrenamientoIntervalo) {
       clearInterval(cronometroEntrenamientoIntervalo);
       cronometroEntrenamientoIntervalo = null;
@@ -681,7 +680,6 @@ function actualizarCronometroUI() {
   }
 
   tarjeta.hidden = false;
-  document.getElementById("iniciar-descanso").hidden = !!estado.fin;
   const fin = estado.fin || Date.now();
   valor.textContent = formatoDuracion(fin - estado.inicio);
 
@@ -1176,10 +1174,6 @@ function iniciarTemporizador(segundosTotal) {
     }
   }, 1000);
 }
-
-document.getElementById("iniciar-descanso").addEventListener("click", () => {
-  iniciarTemporizador(30);
-});
 
 document.getElementById("cerrar-temporizador").addEventListener("click", () => {
   cerrarTemporizador();
