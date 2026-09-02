@@ -72,6 +72,10 @@
           </div>
         </div>
 
+        <button type="button" id="iniciar-descanso" class="btn-descanso">
+          <span aria-hidden="true">⏱️</span> Iniciar descanso (60 seg)
+        </button>
+
         <h2>Actividad semanal</h2>
         <div id="semana-grafico" class="semana-grafico"></div>
 
@@ -117,11 +121,13 @@
             <option value="3">Agregar a Semana 3</option>
             <option value="4">Agregar a Semana 4</option>
           </select>
+          <select id="categoria-ejercicio" class="select-semana">
+            <option value="calentamiento">Calentamiento</option>
+            <option value="principal" selected>Ejercicio principal</option>
+            <option value="estiramiento">Estiramiento final</option>
+          </select>
           <input type="text" id="nombre-ejercicio" placeholder="Nombre (ej. Caminar)" required maxlength="40">
-          <div class="fila-doble">
-            <input type="number" id="series-ejercicio" placeholder="Series" min="1" value="3">
-            <input type="number" id="reps-ejercicio" placeholder="Repeticiones" min="1" value="10">
-          </div>
+          <input type="text" id="detalle-ejercicio" placeholder="Series/tiempo (ej. 2x10, 30 seg)" required maxlength="60">
           <button type="submit" class="btn-principal">Agregar ejercicio</button>
         </form>
 
@@ -251,6 +257,15 @@
         <span>Historial</span>
       </button>
     </nav>
+  </div>
+
+  <!-- TEMPORIZADOR DE DESCANSO -->
+  <div id="temporizador-overlay" class="temporizador-overlay" hidden>
+    <div class="temporizador-tarjeta">
+      <p id="temporizador-titulo" class="temporizador-titulo">Descanso</p>
+      <div class="anillo-svg-wrap temporizador-anillo" id="temporizador-anillo-wrap"></div>
+      <button type="button" id="cerrar-temporizador" class="btn-secundario">Cancelar</button>
+    </div>
   </div>
 
   <script src="app.js"></script>

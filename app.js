@@ -31,28 +31,64 @@ function asegurarPerfilElita() {
   return elita;
 }
 
+function ejercicioInicial(nombre, detalle, categoria) {
+  return { id: crypto.randomUUID(), nombre, detalle, categoria };
+}
+
+function semana1Inicial() {
+  return [
+    // Calentamiento (todos los días, 8 min)
+    ejercicioInicial("Círculos de cuello", "30 seg, sentada, movimientos suaves", "calentamiento"),
+    ejercicioInicial("Círculos de hombros", "1 min, adelante y atrás", "calentamiento"),
+    ejercicioInicial("Marcha en el lugar", "2 min, sostenida de la silla", "calentamiento"),
+    ejercicioInicial("Círculos de cadera", "1 min, de pie apoyada en silla", "calentamiento"),
+    ejercicioInicial("Círculos de tobillo", "30 seg por lado, sentada", "calentamiento"),
+    // Bloque principal (2 series x 8-10, descanso 60 seg)
+    ejercicioInicial("Sentadilla asistida en silla", "2x8 · piernas y glúteos", "principal"),
+    ejercicioInicial("Puente de glúteo", "2x8 · glúteos y core", "principal"),
+    ejercicioInicial("Remo sentada con banda", "2x10 · espalda", "principal"),
+    ejercicioInicial("Elevación lateral de brazos", "2x10 · hombros", "principal"),
+    ejercicioInicial("Báscula pélvica", "2x10 · core y espalda baja", "principal"),
+    ejercicioInicial("Elevación de talones", "2x10 · pantorrillas, apoyada en silla", "principal"),
+    ejercicioInicial("Extensión de tríceps con banda", "2x10 · brazos, sentada", "principal"),
+    ejercicioInicial("Equilibrio en un pie", "2x10 seg por lado · equilibrio, apoyo en silla", "principal"),
+    ejercicioInicial("Rodillas al pecho alternadas", "2x6 por lado · cadera y espalda", "principal"),
+    // Estiramiento final (8-10 min)
+    ejercicioInicial("Estiramiento de cadera", "20 seg por lado, echada", "estiramiento"),
+    ejercicioInicial("Estiramiento de gemelos", "20 seg por lado, apoyada en pared", "estiramiento"),
+    ejercicioInicial("Estiramiento de hombros", "20 seg por lado, sentada", "estiramiento"),
+    ejercicioInicial("Respiración profunda", "2 min, echada con rodillas flexionadas", "estiramiento"),
+  ];
+}
+
+function normalizarEjercicio(ej) {
+  if (typeof ej.detalle === "string") return ej;
+  // Formato anterior: series/reps numéricos -> se combinan en un solo texto libre.
+  const series = ej.series || 1;
+  const reps = ej.reps !== undefined ? ej.reps : "";
+  return { id: ej.id, nombre: ej.nombre, detalle: `${series} series × ${reps}`, categoria: ej.categoria || "principal" };
+}
+
 function cargarSemanasDe(perfilId) {
   const datos = localStorage.getItem(`mis-ejercicios-datos-${perfilId}`);
   if (datos) {
-    const analizado = JSON.parse(datos);
+    let analizado = JSON.parse(datos);
     if (Array.isArray(analizado)) {
       // Formato anterior: una sola lista de ejercicios -> pasa a ser la Semana 1.
-      const migrado = { 1: analizado, 2: [], 3: [], 4: [] };
-      localStorage.setItem(`mis-ejercicios-datos-${perfilId}`, JSON.stringify(migrado));
-      return migrado;
+      analizado = { 1: analizado, 2: [], 3: [], 4: [] };
     }
+    let cambio = false;
+    [1, 2, 3, 4].forEach((n) => {
+      analizado[n] = (analizado[n] || []).map((ej) => {
+        const normalizado = normalizarEjercicio(ej);
+        if (normalizado !== ej) cambio = true;
+        return normalizado;
+      });
+    });
+    if (cambio) localStorage.setItem(`mis-ejercicios-datos-${perfilId}`, JSON.stringify(analizado));
     return analizado;
   }
-  const iniciales = {
-    1: [
-      { id: crypto.randomUUID(), nombre: "Caminar", series: 1, reps: 20 },
-      { id: crypto.randomUUID(), nombre: "Estiramientos", series: 3, reps: 10 },
-      { id: crypto.randomUUID(), nombre: "Sentadillas", series: 3, reps: 10 },
-    ],
-    2: [],
-    3: [],
-    4: [],
-  };
+  const iniciales = { 1: semana1Inicial(), 2: [], 3: [], 4: [] };
   localStorage.setItem(`mis-ejercicios-datos-${perfilId}`, JSON.stringify(iniciales));
   return iniciales;
 }
@@ -96,13 +132,18 @@ const ICONOS_POR_PALABRA = [
   [/correr|trote|running/i, "🏃"],
   [/yoga/i, "🧘"],
   [/sentadilla|pierna|cuadríceps/i, "🏋️"],
-  [/pesa|fuerza|brazo/i, "🏋️"],
+  [/puente|glúteo/i, "🏋️"],
+  [/pesa|fuerza|brazo|tríceps|triceps/i, "💪"],
   [/bici|ciclismo/i, "🚴"],
   [/nada|natación|piscina/i, "🏊"],
-  [/estira|flexibilidad/i, "🤸"],
+  [/estira|flexibilidad|estiramiento/i, "🤸"],
   [/equilibrio|balance/i, "🧘"],
   [/respira/i, "🌬️"],
   [/baile|bailar|zumba/i, "💃"],
+  [/cuello|hombro/i, "🙆"],
+  [/cadera|talon|pantorrilla|tobillo/i, "🦵"],
+  [/rodilla/i, "🦵"],
+  [/remo/i, "🚣"],
 ];
 
 function iconoEjercicio(nombre) {
@@ -116,6 +157,22 @@ function tileEjercicio(id) {
   let suma = 0;
   for (let i = 0; i < id.length; i++) suma += id.charCodeAt(i);
   return TILES[suma % TILES.length];
+}
+
+const NOMBRES_CATEGORIA = {
+  calentamiento: "Calentamiento",
+  principal: "Ejercicios principales",
+  estiramiento: "Estiramiento final",
+};
+
+function agruparPorCategoria(lista) {
+  return ["calentamiento", "principal", "estiramiento"]
+    .map((cat) => ({
+      cat,
+      nombre: NOMBRES_CATEGORIA[cat],
+      items: lista.filter((ej) => (ej.categoria || "principal") === cat),
+    }))
+    .filter((g) => g.items.length > 0);
 }
 
 // --- Anillos SVG ---
@@ -293,22 +350,31 @@ function renderHoy() {
     mensajeVacio.hidden = false;
   } else {
     mensajeVacio.hidden = true;
-    listaActual.forEach((ej) => {
-      const hecho = hechosHoy.includes(ej.id);
-      const card = document.createElement("div");
-      card.className = "ejercicio-card" + (hecho ? " hecho" : "");
-      card.innerHTML = `
-        <span class="ejercicio-icono ${tileEjercicio(ej.id)}">${iconoEjercicio(ej.nombre)}</span>
-        <div class="ejercicio-info">
-          <span class="ejercicio-nombre">${escapeHtml(ej.nombre)}</span>
-          <span class="ejercicio-detalle">${ej.series} series × ${ej.reps} repeticiones</span>
-        </div>
-        <button class="check-btn" aria-label="Marcar completado">✓</button>
-      `;
-      card.querySelector(".check-btn").addEventListener("click", () => {
-        toggleCompletado(ej.id);
+    const grupos = agruparPorCategoria(listaActual);
+    grupos.forEach((grupo) => {
+      if (grupos.length > 1) {
+        const titulo = document.createElement("p");
+        titulo.className = "categoria-titulo";
+        titulo.textContent = grupo.nombre;
+        contenedor.appendChild(titulo);
+      }
+      grupo.items.forEach((ej) => {
+        const hecho = hechosHoy.includes(ej.id);
+        const card = document.createElement("div");
+        card.className = "ejercicio-card" + (hecho ? " hecho" : "");
+        card.innerHTML = `
+          <span class="ejercicio-icono ${tileEjercicio(ej.id)}">${iconoEjercicio(ej.nombre)}</span>
+          <div class="ejercicio-info">
+            <span class="ejercicio-nombre">${escapeHtml(ej.nombre)}</span>
+            <span class="ejercicio-detalle">${escapeHtml(ej.detalle)}</span>
+          </div>
+          <button class="check-btn" aria-label="Marcar completado">✓</button>
+        `;
+        card.querySelector(".check-btn").addEventListener("click", () => {
+          toggleCompletado(ej.id);
+        });
+        contenedor.appendChild(card);
       });
-      contenedor.appendChild(card);
     });
   }
 
@@ -520,12 +586,12 @@ document.getElementById("mes-siguiente").addEventListener("click", () => {
 
 // --- Pestaña Ejercicios ---
 const SUGERENCIAS = [
-  { nombre: "Yoga", series: 1, reps: 15 },
-  { nombre: "Bicicleta", series: 1, reps: 20 },
-  { nombre: "Pesas ligeras", series: 3, reps: 12 },
-  { nombre: "Equilibrio", series: 2, reps: 10 },
-  { nombre: "Respiración", series: 1, reps: 10 },
-  { nombre: "Natación", series: 1, reps: 20 },
+  { nombre: "Yoga", detalle: "1x15" },
+  { nombre: "Bicicleta", detalle: "1x20" },
+  { nombre: "Pesas ligeras", detalle: "3x12" },
+  { nombre: "Equilibrio", detalle: "2x10 seg" },
+  { nombre: "Respiración", detalle: "1x10" },
+  { nombre: "Natación", detalle: "1x20" },
 ];
 
 function renderSugerencias() {
@@ -538,19 +604,20 @@ function renderSugerencias() {
     chip.textContent = `+ ${s.nombre}`;
     chip.addEventListener("click", () => {
       const semanaDestino = Number(document.getElementById("semana-destino").value);
-      agregarEjercicio(s.nombre, s.series, s.reps, semanaDestino);
+      const categoria = document.getElementById("categoria-ejercicio").value;
+      agregarEjercicio(s.nombre, s.detalle, categoria, semanaDestino);
     });
     contenedor.appendChild(chip);
   });
 }
 
-function agregarEjercicio(nombre, series, reps, semanaDestino) {
+function agregarEjercicio(nombre, detalle, categoria, semanaDestino) {
   if (!semanas[semanaDestino]) semanas[semanaDestino] = [];
   semanas[semanaDestino].push({
     id: crypto.randomUUID(),
     nombre: nombre.trim(),
-    series: Number(series) || 1,
-    reps: Number(reps) || 1,
+    detalle: detalle.trim(),
+    categoria: categoria || "principal",
   });
   guardarSemanas();
   renderTodo();
@@ -561,15 +628,14 @@ function agregarEjercicio(nombre, series, reps, semanaDestino) {
 document.getElementById("form-ejercicio").addEventListener("submit", (e) => {
   e.preventDefault();
   const nombre = document.getElementById("nombre-ejercicio").value;
-  const series = document.getElementById("series-ejercicio").value;
-  const reps = document.getElementById("reps-ejercicio").value;
+  const detalle = document.getElementById("detalle-ejercicio").value;
+  const categoria = document.getElementById("categoria-ejercicio").value;
   const semanaDestino = Number(document.getElementById("semana-destino").value);
-  if (!nombre.trim()) return;
-  agregarEjercicio(nombre, series, reps, semanaDestino);
+  if (!nombre.trim() || !detalle.trim()) return;
+  agregarEjercicio(nombre, detalle, categoria, semanaDestino);
   e.target.reset();
   document.getElementById("semana-destino").value = String(semanaDestino);
-  document.getElementById("series-ejercicio").value = 3;
-  document.getElementById("reps-ejercicio").value = 10;
+  document.getElementById("categoria-ejercicio").value = "principal";
 });
 
 function renderSemanas() {
@@ -600,25 +666,34 @@ function renderSemanas() {
     if (lista.length === 0) {
       cuerpo.innerHTML = '<p class="msg-vacio">Todavía no hay ejercicios en esta semana.</p>';
     } else {
-      lista.forEach((ej) => {
-        const card = document.createElement("div");
-        card.className = "gestion-card";
-        card.innerHTML = `
-          <span class="ejercicio-icono ${tileEjercicio(ej.id)}">${iconoEjercicio(ej.nombre)}</span>
-          <div class="ejercicio-info">
-            <span class="ejercicio-nombre">${escapeHtml(ej.nombre)}</span>
-            <span class="ejercicio-detalle">${ej.series} series × ${ej.reps} repeticiones</span>
-          </div>
-          <button class="eliminar-btn" aria-label="Eliminar ${escapeHtml(ej.nombre)}">🗑</button>
-        `;
-        card.querySelector(".eliminar-btn").addEventListener("click", () => {
-          if (confirm(`¿Eliminar "${ej.nombre}"?`)) {
-            semanas[n] = semanas[n].filter((e) => e.id !== ej.id);
-            guardarSemanas();
-            renderTodo();
-          }
+      const grupos = agruparPorCategoria(lista);
+      grupos.forEach((grupo) => {
+        if (grupos.length > 1) {
+          const titulo = document.createElement("p");
+          titulo.className = "categoria-titulo";
+          titulo.textContent = grupo.nombre;
+          cuerpo.appendChild(titulo);
+        }
+        grupo.items.forEach((ej) => {
+          const card = document.createElement("div");
+          card.className = "gestion-card";
+          card.innerHTML = `
+            <span class="ejercicio-icono ${tileEjercicio(ej.id)}">${iconoEjercicio(ej.nombre)}</span>
+            <div class="ejercicio-info">
+              <span class="ejercicio-nombre">${escapeHtml(ej.nombre)}</span>
+              <span class="ejercicio-detalle">${escapeHtml(ej.detalle)}</span>
+            </div>
+            <button class="eliminar-btn" aria-label="Eliminar ${escapeHtml(ej.nombre)}">🗑</button>
+          `;
+          card.querySelector(".eliminar-btn").addEventListener("click", () => {
+            if (confirm(`¿Eliminar "${ej.nombre}"?`)) {
+              semanas[n] = semanas[n].filter((e) => e.id !== ej.id);
+              guardarSemanas();
+              renderTodo();
+            }
+          });
+          cuerpo.appendChild(card);
         });
-        cuerpo.appendChild(card);
       });
     }
 
@@ -733,6 +808,78 @@ function renderHistorial() {
     contenedor.appendChild(card);
   });
 }
+
+// --- Temporizador de descanso ---
+let temporizadorIntervalo = null;
+
+function actualizarTemporizadorUI(restante, total) {
+  const porcentaje = (restante / total) * 100;
+  document.getElementById("temporizador-anillo-wrap").innerHTML =
+    crearAnillo(porcentaje, 76, 14, "#ef8a5f", "#c0463c", "gradTemporizador") +
+    `<div class="anillo-porcentaje">${restante}</div>`;
+}
+
+function sonarAlarma() {
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    const ctx = new Ctx();
+    [0, 0.35, 0.7].forEach((t) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.25, ctx.currentTime + t);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.3);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(ctx.currentTime + t);
+      osc.stop(ctx.currentTime + t + 0.3);
+    });
+  } catch (e) {}
+  if (navigator.vibrate) {
+    try { navigator.vibrate([200, 100, 200, 100, 200]); } catch (e) {}
+  }
+}
+
+function detenerTemporizador() {
+  if (temporizadorIntervalo) {
+    clearInterval(temporizadorIntervalo);
+    temporizadorIntervalo = null;
+  }
+}
+
+function cerrarTemporizador() {
+  detenerTemporizador();
+  document.getElementById("temporizador-overlay").hidden = true;
+}
+
+function iniciarTemporizador(segundosTotal) {
+  detenerTemporizador();
+  let restante = segundosTotal;
+  document.getElementById("temporizador-titulo").textContent = "Descanso";
+  actualizarTemporizadorUI(restante, segundosTotal);
+  document.getElementById("temporizador-overlay").hidden = false;
+
+  temporizadorIntervalo = setInterval(() => {
+    restante--;
+    if (restante <= 0) {
+      detenerTemporizador();
+      actualizarTemporizadorUI(0, segundosTotal);
+      document.getElementById("temporizador-titulo").textContent = "¡Descanso terminado! 💪";
+      sonarAlarma();
+    } else {
+      actualizarTemporizadorUI(restante, segundosTotal);
+    }
+  }, 1000);
+}
+
+document.getElementById("iniciar-descanso").addEventListener("click", () => {
+  iniciarTemporizador(60);
+});
+
+document.getElementById("cerrar-temporizador").addEventListener("click", () => {
+  cerrarTemporizador();
+});
 
 // --- Inicio ---
 const idActivoGuardado = localStorage.getItem(CLAVE_PERFIL_ACTIVO);
