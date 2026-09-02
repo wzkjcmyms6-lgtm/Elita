@@ -49,6 +49,82 @@ let ejercicios = [];
 let registro = {};
 let mesVisible = new Date();
 
+// --- Íconos y colores por ejercicio ---
+const ICONOS_POR_PALABRA = [
+  [/camin|marcha/i, "🚶"],
+  [/correr|trote|running/i, "🏃"],
+  [/yoga/i, "🧘"],
+  [/sentadilla|pierna|cuadríceps/i, "🏋️"],
+  [/pesa|fuerza|brazo/i, "🏋️"],
+  [/bici|ciclismo/i, "🚴"],
+  [/nada|natación|piscina/i, "🏊"],
+  [/estira|flexibilidad/i, "🤸"],
+  [/equilibrio|balance/i, "🧘"],
+  [/respira/i, "🌬️"],
+  [/baile|bailar|zumba/i, "💃"],
+];
+
+function iconoEjercicio(nombre) {
+  const encontrado = ICONOS_POR_PALABRA.find(([regex]) => regex.test(nombre));
+  return encontrado ? encontrado[1] : "💪";
+}
+
+const TILES = ["tile-teal", "tile-coral", "tile-oro"];
+
+function tileEjercicio(id) {
+  let suma = 0;
+  for (let i = 0; i < id.length; i++) suma += id.charCodeAt(i);
+  return TILES[suma % TILES.length];
+}
+
+// --- Anillos SVG ---
+function crearAnillo(porcentaje, radio, grosor, colorInicio, colorFin, idGrad) {
+  const centro = radio + grosor / 2 + 2;
+  const tam = centro * 2;
+  const circunferencia = 2 * Math.PI * radio;
+  const p = Math.max(0, Math.min(100, porcentaje));
+  const offset = circunferencia * (1 - p / 100);
+  return `
+    <svg viewBox="0 0 ${tam} ${tam}">
+      <defs>
+        <linearGradient id="${idGrad}" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="${colorInicio}"/>
+          <stop offset="100%" stop-color="${colorFin}"/>
+        </linearGradient>
+      </defs>
+      <circle cx="${centro}" cy="${centro}" r="${radio}" fill="none" stroke="#e7eeec" stroke-width="${grosor}"/>
+      <circle cx="${centro}" cy="${centro}" r="${radio}" fill="none" stroke="url(#${idGrad})"
+        stroke-width="${grosor}" stroke-linecap="round"
+        stroke-dasharray="${circunferencia}" stroke-dashoffset="${offset}"
+        transform="rotate(-90 ${centro} ${centro})"/>
+    </svg>
+  `;
+}
+
+function crearAnillosConcentricos(anillos) {
+  const radioMax = 54;
+  const grosor = 11;
+  const espacio = 3;
+  const centro = radioMax + grosor / 2 + 2;
+  const tam = centro * 2;
+  let svg = `<svg viewBox="0 0 ${tam} ${tam}"><defs></defs>`;
+  anillos.forEach((a, i) => {
+    const radio = radioMax - i * (grosor + espacio);
+    const circunferencia = 2 * Math.PI * radio;
+    const p = Math.max(0, Math.min(100, a.porcentaje));
+    const offset = circunferencia * (1 - p / 100);
+    svg += `
+      <circle cx="${centro}" cy="${centro}" r="${radio}" fill="none" stroke="#e7eeec" stroke-width="${grosor}"/>
+      <circle cx="${centro}" cy="${centro}" r="${radio}" fill="none" stroke="${a.color}"
+        stroke-width="${grosor}" stroke-linecap="round"
+        stroke-dasharray="${circunferencia}" stroke-dashoffset="${offset}"
+        transform="rotate(-90 ${centro} ${centro})"/>
+    `;
+  });
+  svg += `</svg>`;
+  return svg;
+}
+
 // --- Selección de usuario ---
 function iniciales(nombre) {
   return nombre.trim().charAt(0).toUpperCase() || "?";
@@ -111,7 +187,8 @@ function iniciarApp(id) {
   registro = cargarRegistroDe(id);
   document.getElementById("pantalla-perfil").hidden = true;
   document.getElementById("app-contenido").hidden = false;
-  document.getElementById("saludo-usuario").textContent = `Hola, ${perfilActivo.nombre}`;
+  document.getElementById("saludo-usuario").textContent = `Hola, ${perfilActivo.nombre} 👋`;
+  document.getElementById("avatar-header").textContent = iniciales(perfilActivo.nombre);
   renderSugerencias();
   renderTodo();
 }
@@ -133,14 +210,34 @@ document.getElementById("cambiar-usuario").addEventListener("click", () => {
   mostrarPantallaPerfil();
 });
 
+document.getElementById("eliminar-usuario").addEventListener("click", () => {
+  if (confirm(`¿Eliminar a "${perfilActivo.nombre}" y todo su progreso? Esta acción no se puede deshacer.`)) {
+    const id = perfilActivo.id;
+    eliminarPerfil(id);
+  }
+});
+
 // --- Navegación por pestañas ---
-document.querySelectorAll(".tab-btn").forEach((btn) => {
+function irATab(nombreTab) {
+  document.querySelectorAll(".nav-btn").forEach((b) => b.classList.remove("active"));
+  document.querySelectorAll(".tab-panel").forEach((p) => p.classList.remove("active"));
+  document.querySelector(`.nav-btn[data-tab="${nombreTab}"]`).classList.add("active");
+  document.getElementById(`tab-${nombreTab}`).classList.add("active");
+  if (nombreTab === "progreso") renderProgreso();
+  if (nombreTab === "perfil") renderPerfil();
+  window.scrollTo({ top: 0, behavior: "instant" });
+}
+
+document.querySelectorAll(".nav-btn").forEach((btn) => {
+  btn.addEventListener("click", () => irATab(btn.dataset.tab));
+});
+
+document.querySelectorAll(".acceso-btn").forEach((btn) => {
   btn.addEventListener("click", () => {
-    document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
-    document.querySelectorAll(".tab-panel").forEach((p) => p.classList.remove("active"));
-    btn.classList.add("active");
-    document.getElementById(`tab-${btn.dataset.tab}`).classList.add("active");
-    if (btn.dataset.tab === "progreso") renderProgreso();
+    irATab(btn.dataset.ir);
+    if (btn.dataset.accion === "agregar") {
+      setTimeout(() => document.getElementById("nombre-ejercicio").focus(), 150);
+    }
   });
 });
 
@@ -157,33 +254,42 @@ function renderHoy() {
   const mensajeVacio = document.getElementById("sin-ejercicios-msg");
   contenedor.innerHTML = "";
 
-  if (ejercicios.length === 0) {
-    mensajeVacio.hidden = false;
-    return;
-  }
-  mensajeVacio.hidden = true;
-
   const clave = hoyISO();
   const hechosHoy = registro[clave] || [];
 
-  ejercicios.forEach((ej) => {
-    const hecho = hechosHoy.includes(ej.id);
-    const card = document.createElement("div");
-    card.className = "ejercicio-card" + (hecho ? " hecho" : "");
-    card.innerHTML = `
-      <button class="check-btn" aria-label="Marcar completado">✓</button>
-      <div class="ejercicio-info">
-        <span class="ejercicio-nombre">${escapeHtml(ej.nombre)}</span>
-        <span class="ejercicio-detalle">${ej.series} series × ${ej.reps} repeticiones</span>
-      </div>
-    `;
-    card.querySelector(".check-btn").addEventListener("click", () => {
-      toggleCompletado(ej.id);
+  if (ejercicios.length === 0) {
+    mensajeVacio.hidden = false;
+  } else {
+    mensajeVacio.hidden = true;
+    ejercicios.forEach((ej) => {
+      const hecho = hechosHoy.includes(ej.id);
+      const card = document.createElement("div");
+      card.className = "ejercicio-card" + (hecho ? " hecho" : "");
+      card.innerHTML = `
+        <span class="ejercicio-icono ${tileEjercicio(ej.id)}">${iconoEjercicio(ej.nombre)}</span>
+        <div class="ejercicio-info">
+          <span class="ejercicio-nombre">${escapeHtml(ej.nombre)}</span>
+          <span class="ejercicio-detalle">${ej.series} series × ${ej.reps} repeticiones</span>
+        </div>
+        <button class="check-btn" aria-label="Marcar completado">✓</button>
+      `;
+      card.querySelector(".check-btn").addEventListener("click", () => {
+        toggleCompletado(ej.id);
+      });
+      contenedor.appendChild(card);
     });
-    contenedor.appendChild(card);
-  });
+  }
 
-  renderRacha();
+  const total = ejercicios.length;
+  const hechos = hechosHoy.filter((id) => ejercicios.some((e) => e.id === id)).length;
+  const porcentaje = total > 0 ? Math.round((hechos / total) * 100) : 0;
+
+  document.getElementById("anillo-hoy-wrap").innerHTML =
+    crearAnillo(porcentaje, 46, 12, "#2f9e8f", "#1f6f63", "gradAnilloHoy") +
+    `<div class="anillo-porcentaje">${porcentaje}%</div>`;
+  document.getElementById("anillo-hoy-detalle").textContent = `${hechos} de ${total} ejercicios`;
+
+  renderGraficoSemana("semana-grafico");
 }
 
 function toggleCompletado(id) {
@@ -242,21 +348,8 @@ function calcularMejorRacha() {
   return mejor;
 }
 
-function renderRacha() {
-  document.getElementById("racha-numero").textContent = calcularRachaActual();
-}
-
-// --- Pestaña Progreso ---
-function renderProgreso() {
-  document.getElementById("total-dias").textContent = Object.keys(registro).filter(
-    (f) => registro[f].length > 0
-  ).length;
-  document.getElementById("mejor-racha").textContent = calcularMejorRacha();
-
-  const inicioSemana = new Date();
-  inicioSemana.setDate(inicioSemana.getDate() - 6);
-  let contadorSemana = 0;
-  const grafico = document.getElementById("semana-grafico");
+function renderGraficoSemana(contenedorId) {
+  const grafico = document.getElementById(contenedorId);
   grafico.innerHTML = "";
   const letras = ["D", "L", "M", "M", "J", "V", "S"];
 
@@ -265,7 +358,6 @@ function renderProgreso() {
     fecha.setDate(fecha.getDate() - i);
     const iso = new Date(fecha.getTime() - fecha.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
     const activo = diaCompletado(iso);
-    if (activo) contadorSemana++;
 
     const wrap = document.createElement("div");
     wrap.className = "dia-barra-wrap";
@@ -275,7 +367,43 @@ function renderProgreso() {
     `;
     grafico.appendChild(wrap);
   }
+}
+
+// --- Pestaña Progreso ---
+function renderProgreso() {
+  document.getElementById("total-dias").textContent = Object.keys(registro).filter(
+    (f) => registro[f].length > 0
+  ).length;
+  document.getElementById("mejor-racha").textContent = calcularMejorRacha();
+
+  let contadorSemana = 0;
+  let ejerciciosSemana = 0;
+  for (let i = 6; i >= 0; i--) {
+    const fecha = new Date();
+    fecha.setDate(fecha.getDate() - i);
+    const iso = new Date(fecha.getTime() - fecha.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+    if (diaCompletado(iso)) {
+      contadorSemana++;
+      ejerciciosSemana += registro[iso].length;
+    }
+  }
   document.getElementById("total-semana").textContent = contadorSemana;
+
+  const racha = calcularRachaActual();
+  const metaEjercicios = Math.max(1, ejercicios.length * 7);
+
+  const anillos = [
+    { porcentaje: (contadorSemana / 7) * 100, color: "#2f9e8f" },
+    { porcentaje: (ejerciciosSemana / metaEjercicios) * 100, color: "#ef8a5f" },
+    { porcentaje: (Math.min(racha, 7) / 7) * 100, color: "#c99a4a" },
+  ];
+  document.getElementById("anillos-semana-wrap").innerHTML = crearAnillosConcentricos(anillos);
+
+  document.getElementById("anillos-leyenda").innerHTML = `
+    <div class="leyenda-fila"><span class="leyenda-punto" style="background:#2f9e8f"></span><span class="leyenda-texto">Días activos</span><span class="leyenda-valor">${contadorSemana}/7</span></div>
+    <div class="leyenda-fila"><span class="leyenda-punto" style="background:#ef8a5f"></span><span class="leyenda-texto">Ejercicios hechos</span><span class="leyenda-valor">${ejerciciosSemana}</span></div>
+    <div class="leyenda-fila"><span class="leyenda-punto" style="background:#c99a4a"></span><span class="leyenda-texto">Racha actual</span><span class="leyenda-valor">${racha} días</span></div>
+  `;
 
   renderCalendario();
 }
@@ -381,11 +509,12 @@ function renderGestion() {
     const card = document.createElement("div");
     card.className = "gestion-card";
     card.innerHTML = `
+      <span class="ejercicio-icono ${tileEjercicio(ej.id)}">${iconoEjercicio(ej.nombre)}</span>
       <div class="ejercicio-info">
         <span class="ejercicio-nombre">${escapeHtml(ej.nombre)}</span>
         <span class="ejercicio-detalle">${ej.series} series × ${ej.reps} repeticiones</span>
       </div>
-      <button class="eliminar-btn" aria-label="Eliminar">🗑</button>
+      <button class="eliminar-btn" aria-label="Eliminar ${escapeHtml(ej.nombre)}">🗑</button>
     `;
     card.querySelector(".eliminar-btn").addEventListener("click", () => {
       if (confirm(`¿Eliminar "${ej.nombre}"?`)) {
@@ -396,6 +525,16 @@ function renderGestion() {
     });
     contenedor.appendChild(card);
   });
+}
+
+// --- Pestaña Perfil ---
+function renderPerfil() {
+  document.getElementById("avatar-grande").textContent = iniciales(perfilActivo.nombre);
+  document.getElementById("perfil-resumen-nombre").textContent = perfilActivo.nombre;
+  document.getElementById("perfil-racha").textContent = calcularRachaActual();
+  document.getElementById("perfil-dias").textContent = Object.keys(registro).filter(
+    (f) => registro[f].length > 0
+  ).length;
 }
 
 function escapeHtml(texto) {
@@ -409,6 +548,9 @@ function renderTodo() {
   renderGestion();
   if (document.getElementById("tab-progreso").classList.contains("active")) {
     renderProgreso();
+  }
+  if (document.getElementById("tab-perfil").classList.contains("active")) {
+    renderPerfil();
   }
 }
 

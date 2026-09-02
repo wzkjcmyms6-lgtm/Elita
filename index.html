@@ -8,96 +8,156 @@
 </head>
 <body>
   <section id="pantalla-perfil" class="pantalla-perfil">
-    <div class="perfil-tarjeta">
-      <h1 class="perfil-titulo">💪 Mis Ejercicios</h1>
-      <p class="perfil-subtitulo">¿Quién va a hacer ejercicio hoy?</p>
+    <div class="perfil-hero">
+      <div class="perfil-hero-icono">💪</div>
+      <h1 class="perfil-titulo">Tu progreso<br>empieza hoy</h1>
+      <p class="perfil-subtitulo">Registra tus ejercicios, seguí tu racha y mirá cuánto avanzaste.</p>
 
       <div id="lista-perfiles" class="lista-perfiles"></div>
 
       <form id="form-perfil" class="form-perfil">
-        <input type="text" id="nombre-perfil" placeholder="Nombre (ej. Tía Rosa)" maxlength="24" required>
-        <button type="submit" class="btn-principal">Crear mi usuario</button>
+        <input type="text" id="nombre-perfil" placeholder="Tu nombre (ej. Tía Rosa)" maxlength="24" required>
+        <button type="submit" class="btn-principal">Comenzar</button>
       </form>
     </div>
   </section>
 
   <div id="app-contenido" class="app-contenido" hidden>
     <header class="app-header">
-      <button id="cambiar-usuario" class="cambiar-usuario-btn">Cambiar usuario</button>
-      <h1>💪 Mis Ejercicios</h1>
-      <p id="saludo-usuario" class="saludo-usuario"></p>
-      <p id="fecha-hoy" class="fecha"></p>
+      <div>
+        <p class="saludo-usuario" id="saludo-usuario"></p>
+        <p id="fecha-hoy" class="fecha"></p>
+      </div>
+      <div class="avatar-header" id="avatar-header"></div>
     </header>
 
-    <nav class="tabs">
-      <button class="tab-btn active" data-tab="hoy">Hoy</button>
-      <button class="tab-btn" data-tab="progreso">Mi Progreso</button>
-      <button class="tab-btn" data-tab="ejercicios">Mis Ejercicios</button>
-    </nav>
-
-    <main>
-    <!-- TAB: HOY -->
-    <section id="tab-hoy" class="tab-panel active">
-      <div class="racha-card">
-        <span class="racha-numero" id="racha-numero">0</span>
-        <span class="racha-texto">días seguidos haciendo ejercicio 🔥</span>
-      </div>
-
-      <div id="lista-hoy" class="lista-ejercicios"></div>
-
-      <p id="sin-ejercicios-msg" class="msg-vacio" hidden>
-        Todavía no tienes ejercicios. Ve a la pestaña "Mis Ejercicios" para agregar algunos.
-      </p>
-    </section>
-
-    <!-- TAB: PROGRESO -->
-    <section id="tab-progreso" class="tab-panel">
-      <div class="resumen-grid">
-        <div class="resumen-card">
-          <span class="resumen-numero" id="total-dias">0</span>
-          <span class="resumen-etiqueta">días totales</span>
+    <main class="app-main">
+      <!-- TAB: HOY -->
+      <section id="tab-hoy" class="tab-panel active">
+        <div class="tarjeta-anillo">
+          <div class="anillo-svg-wrap" id="anillo-hoy-wrap"></div>
+          <div class="anillo-info">
+            <span class="anillo-titulo">Progreso de hoy</span>
+            <span class="anillo-detalle" id="anillo-hoy-detalle">0 de 0 ejercicios</span>
+          </div>
         </div>
-        <div class="resumen-card">
-          <span class="resumen-numero" id="total-semana">0</span>
-          <span class="resumen-etiqueta">esta semana</span>
+
+        <h2>Actividad semanal</h2>
+        <div id="semana-grafico" class="semana-grafico"></div>
+
+        <h2>Accesos rápidos</h2>
+        <div class="accesos-grid">
+          <button type="button" class="acceso-btn" data-ir="ejercicios" data-accion="agregar">
+            <span class="acceso-icono tile-teal">➕</span>
+            <span>Agregar ejercicio</span>
+          </button>
+          <button type="button" class="acceso-btn" data-ir="progreso">
+            <span class="acceso-icono tile-coral">📅</span>
+            <span>Ver calendario</span>
+          </button>
+          <button type="button" class="acceso-btn" data-ir="ejercicios">
+            <span class="acceso-icono tile-oro">📋</span>
+            <span>Mis ejercicios</span>
+          </button>
+          <button type="button" class="acceso-btn" data-ir="perfil">
+            <span class="acceso-icono tile-teal">🔄</span>
+            <span>Cambiar usuario</span>
+          </button>
         </div>
-        <div class="resumen-card">
-          <span class="resumen-numero" id="mejor-racha">0</span>
-          <span class="resumen-etiqueta">mejor racha</span>
+
+        <h2>Ejercicios de hoy</h2>
+        <div id="lista-hoy" class="lista-ejercicios"></div>
+
+        <p id="sin-ejercicios-msg" class="msg-vacio" hidden>
+          Todavía no tienes ejercicios. Andá a la pestaña "Ejercicios" para agregar algunos.
+        </p>
+      </section>
+
+      <!-- TAB: EJERCICIOS -->
+      <section id="tab-ejercicios" class="tab-panel">
+        <h2>Mis ejercicios</h2>
+        <div id="lista-gestion" class="lista-gestion"></div>
+
+        <h2>Agregar un ejercicio</h2>
+        <form id="form-ejercicio" class="form-ejercicio">
+          <input type="text" id="nombre-ejercicio" placeholder="Nombre (ej. Caminar)" required maxlength="40">
+          <div class="fila-doble">
+            <input type="number" id="series-ejercicio" placeholder="Series" min="1" value="3">
+            <input type="number" id="reps-ejercicio" placeholder="Repeticiones" min="1" value="10">
+          </div>
+          <button type="submit" class="btn-principal">Agregar ejercicio</button>
+        </form>
+
+        <h2>Sugerencias rápidas</h2>
+        <div id="sugerencias" class="sugerencias"></div>
+      </section>
+
+      <!-- TAB: PROGRESO -->
+      <section id="tab-progreso" class="tab-panel">
+        <div class="resumen-grid">
+          <div class="resumen-card">
+            <span class="resumen-numero" id="total-dias">0</span>
+            <span class="resumen-etiqueta">días totales</span>
+          </div>
+          <div class="resumen-card">
+            <span class="resumen-numero" id="total-semana">0</span>
+            <span class="resumen-etiqueta">esta semana</span>
+          </div>
+          <div class="resumen-card">
+            <span class="resumen-numero" id="mejor-racha">0</span>
+            <span class="resumen-etiqueta">mejor racha</span>
+          </div>
         </div>
-      </div>
 
-      <h2>Últimos 7 días</h2>
-      <div id="semana-grafico" class="semana-grafico"></div>
-
-      <h2>Calendario</h2>
-      <div class="calendario-nav">
-        <button id="mes-anterior" class="btn-icono">◀</button>
-        <span id="mes-actual" class="mes-titulo"></span>
-        <button id="mes-siguiente" class="btn-icono">▶</button>
-      </div>
-      <div id="calendario" class="calendario"></div>
-    </section>
-
-    <!-- TAB: EJERCICIOS -->
-    <section id="tab-ejercicios" class="tab-panel">
-      <h2>Agregar un ejercicio</h2>
-      <form id="form-ejercicio" class="form-ejercicio">
-        <input type="text" id="nombre-ejercicio" placeholder="Nombre (ej. Caminar)" required maxlength="40">
-        <div class="fila-doble">
-          <input type="number" id="series-ejercicio" placeholder="Series" min="1" value="3">
-          <input type="number" id="reps-ejercicio" placeholder="Repeticiones" min="1" value="10">
+        <h2>Anillos de la semana</h2>
+        <div class="tarjeta-anillos-semana">
+          <div class="anillos-svg-wrap" id="anillos-semana-wrap"></div>
+          <div class="anillos-leyenda" id="anillos-leyenda"></div>
         </div>
-        <button type="submit" class="btn-principal">Agregar ejercicio</button>
-      </form>
 
-      <h2>Sugerencias rápidas</h2>
-      <div id="sugerencias" class="sugerencias"></div>
+        <h2>Calendario</h2>
+        <div class="calendario-nav">
+          <button id="mes-anterior" class="btn-icono" aria-label="Mes anterior">◀</button>
+          <span id="mes-actual" class="mes-titulo"></span>
+          <button id="mes-siguiente" class="btn-icono" aria-label="Mes siguiente">▶</button>
+        </div>
+        <div id="calendario" class="calendario"></div>
+      </section>
 
-      <h2>Mis ejercicios</h2>
-      <div id="lista-gestion" class="lista-gestion"></div>
-    </section>
+      <!-- TAB: PERFIL -->
+      <section id="tab-perfil" class="tab-panel">
+        <div class="perfil-resumen-tarjeta">
+          <div class="avatar-grande" id="avatar-grande"></div>
+          <span class="perfil-resumen-nombre" id="perfil-resumen-nombre"></span>
+          <div class="perfil-resumen-stats">
+            <div><strong id="perfil-racha">0</strong><span>racha</span></div>
+            <div><strong id="perfil-dias">0</strong><span>días</span></div>
+          </div>
+        </div>
+
+        <button type="button" id="cambiar-usuario" class="btn-secundario">Cambiar de usuario</button>
+        <button type="button" id="eliminar-usuario" class="btn-peligro">Eliminar mi usuario</button>
+      </section>
     </main>
+
+    <nav class="bottom-nav">
+      <button class="nav-btn active" data-tab="hoy">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg>
+        <span>Hoy</span>
+      </button>
+      <button class="nav-btn" data-tab="ejercicios">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="12" x2="18" y2="12"/><rect x="2.5" y="9" width="3.5" height="6" rx="1"/><rect x="18" y="9" width="3.5" height="6" rx="1"/><rect x="0.5" y="10.5" width="2" height="3" rx="0.6"/><rect x="21" y="10.5" width="2" height="3" rx="0.6"/></svg>
+        <span>Ejercicios</span>
+      </button>
+      <button class="nav-btn" data-tab="progreso">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="20" x2="4" y2="12"/><line x1="10" y1="20" x2="10" y2="6"/><line x1="16" y1="20" x2="16" y2="14"/><line x1="21" y1="20" x2="3" y2="20"/></svg>
+        <span>Progreso</span>
+      </button>
+      <button class="nav-btn" data-tab="perfil">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+        <span>Perfil</span>
+      </button>
+    </nav>
   </div>
 
   <script src="app.js"></script>
