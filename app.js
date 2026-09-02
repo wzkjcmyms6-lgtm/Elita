@@ -31,14 +31,19 @@ function asegurarPerfilElita() {
   return elita;
 }
 
-function ejercicioInicial(nombre, detalle, categoria) {
-  return { id: crypto.randomUUID(), nombre, detalle, categoria };
+function ejercicioInicial(nombre, detalle, categoria, video) {
+  return { id: crypto.randomUUID(), nombre, detalle, categoria, video: video || null };
 }
+
+// --- Videos guía conocidos, usados también para completar ejercicios ya guardados ---
+const VIDEOS_CONOCIDOS = {
+  "Círculos de cuello": "videos/circulos-cuello.mp4",
+};
 
 function semana1Inicial() {
   return [
     // Calentamiento (todos los días, 8 min)
-    ejercicioInicial("Círculos de cuello", "30 seg, sentada, movimientos suaves", "calentamiento"),
+    ejercicioInicial("Círculos de cuello", "30 seg, sentada, movimientos suaves", "calentamiento", VIDEOS_CONOCIDOS["Círculos de cuello"]),
     ejercicioInicial("Círculos de hombros", "1 min, adelante y atrás", "calentamiento"),
     ejercicioInicial("Marcha en el lugar", "2 min, sostenida de la silla", "calentamiento"),
     ejercicioInicial("Círculos de cadera", "1 min, de pie apoyada en silla", "calentamiento"),
@@ -62,11 +67,18 @@ function semana1Inicial() {
 }
 
 function normalizarEjercicio(ej) {
-  if (typeof ej.detalle === "string") return ej;
-  // Formato anterior: series/reps numéricos -> se combinan en un solo texto libre.
-  const series = ej.series || 1;
-  const reps = ej.reps !== undefined ? ej.reps : "";
-  return { id: ej.id, nombre: ej.nombre, detalle: `${series} series × ${reps}`, categoria: ej.categoria || "principal" };
+  let resultado = ej;
+  if (typeof ej.detalle !== "string") {
+    // Formato anterior: series/reps numéricos -> se combinan en un solo texto libre.
+    const series = ej.series || 1;
+    const reps = ej.reps !== undefined ? ej.reps : "";
+    resultado = { id: ej.id, nombre: ej.nombre, detalle: `${series} series × ${reps}`, categoria: ej.categoria || "principal", video: ej.video || null };
+  }
+  const videoConocido = VIDEOS_CONOCIDOS[resultado.nombre];
+  if (videoConocido && !resultado.video) {
+    resultado = { ...resultado, video: videoConocido };
+  }
+  return resultado;
 }
 
 function cargarSemanasDe(perfilId) {
@@ -382,6 +394,7 @@ function renderHoy() {
             <div class="ejercicio-info">
               <span class="ejercicio-nombre">${escapeHtml(ej.nombre)}</span>
               <span class="ejercicio-detalle">${escapeHtml(ej.detalle)}</span>
+              ${ej.video ? `<button type="button" class="ver-video-btn" data-video="${escapeHtml(ej.video)}" data-nombre="${escapeHtml(ej.nombre)}">🎥 Ver guía</button>` : ""}
               <div class="series-fila">${botonesSeries}</div>
             </div>
           `;
@@ -399,6 +412,7 @@ function renderHoy() {
             <div class="ejercicio-info">
               <span class="ejercicio-nombre">${escapeHtml(ej.nombre)}</span>
               <span class="ejercicio-detalle">${escapeHtml(ej.detalle)}</span>
+              ${ej.video ? `<button type="button" class="ver-video-btn" data-video="${escapeHtml(ej.video)}" data-nombre="${escapeHtml(ej.nombre)}">🎥 Ver guía</button>` : ""}
             </div>
             <button class="check-btn" aria-label="Marcar completado">✓</button>
           `;
@@ -407,6 +421,12 @@ function renderHoy() {
             if (marcada) iniciarTemporizador(60);
           });
         }
+        card.querySelectorAll(".ver-video-btn").forEach((btn) => {
+          btn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            abrirVideo(btn.dataset.video, btn.dataset.nombre);
+          });
+        });
         contenedor.appendChild(card);
       });
     });
@@ -686,9 +706,14 @@ function renderSemanas() {
             <div class="ejercicio-info">
               <span class="ejercicio-nombre">${escapeHtml(ej.nombre)}</span>
               <span class="ejercicio-detalle">${escapeHtml(ej.detalle)}</span>
+              ${ej.video ? `<button type="button" class="ver-video-btn" data-video="${escapeHtml(ej.video)}" data-nombre="${escapeHtml(ej.nombre)}">🎥 Ver guía</button>` : ""}
             </div>
             <button class="eliminar-btn" aria-label="Eliminar ${escapeHtml(ej.nombre)}">🗑</button>
           `;
+          const botonVideo = card.querySelector(".ver-video-btn");
+          if (botonVideo) {
+            botonVideo.addEventListener("click", () => abrirVideo(botonVideo.dataset.video, botonVideo.dataset.nombre));
+          }
           card.querySelector(".eliminar-btn").addEventListener("click", () => {
             if (confirm(`¿Eliminar "${ej.nombre}"?`)) {
               semanas[n] = semanas[n].filter((e) => e.id !== ej.id);
@@ -885,6 +910,24 @@ document.getElementById("iniciar-descanso").addEventListener("click", () => {
 document.getElementById("cerrar-temporizador").addEventListener("click", () => {
   cerrarTemporizador();
 });
+
+// --- Video guía ---
+function abrirVideo(ruta, nombre) {
+  const video = document.getElementById("video-guia");
+  document.getElementById("video-titulo").textContent = nombre;
+  video.src = ruta;
+  document.getElementById("video-overlay").hidden = false;
+  video.play().catch(() => {});
+}
+
+function cerrarVideo() {
+  const video = document.getElementById("video-guia");
+  video.pause();
+  video.src = "";
+  document.getElementById("video-overlay").hidden = true;
+}
+
+document.getElementById("cerrar-video").addEventListener("click", cerrarVideo);
 
 // --- Inicio ---
 const idActivoGuardado = localStorage.getItem(CLAVE_PERFIL_ACTIVO);
