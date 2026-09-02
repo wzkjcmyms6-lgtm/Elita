@@ -768,20 +768,31 @@ function renderGraficoSemana(contenedorId) {
   grafico.innerHTML = "";
   const letras = ["D", "L", "M", "M", "J", "V", "S"];
 
+  const dias = [];
   for (let i = 6; i >= 0; i--) {
     const fecha = new Date();
     fecha.setDate(fecha.getDate() - i);
     const iso = new Date(fecha.getTime() - fecha.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-    const activo = diaCompletado(iso);
+    const cronDia = cronometros[iso];
+    const duracionMs = cronDia ? (cronDia.fin || Date.now()) - cronDia.inicio : 0;
+    dias.push({ fecha, iso, duracionMs, activo: diaCompletado(iso) });
+  }
+
+  const maxDuracion = Math.max(...dias.map((d) => d.duracionMs), 1);
+
+  dias.forEach(({ fecha, duracionMs, activo }) => {
+    const alturaPct = duracionMs > 0 ? Math.max(15, Math.round((duracionMs / maxDuracion) * 100)) : activo ? 100 : 10;
+    const duracionTexto = duracionMs > 0 ? formatoDuracion(duracionMs) : "";
 
     const wrap = document.createElement("div");
     wrap.className = "dia-barra-wrap";
     wrap.innerHTML = `
-      <div class="dia-barra ${activo ? "activo" : ""}" style="height:${activo ? "100%" : "10%"}"></div>
+      <span class="dia-duracion">${duracionTexto}</span>
+      <div class="dia-barra ${activo ? "activo" : ""}" style="height:${alturaPct}%"></div>
       <span class="dia-letra">${letras[fecha.getDay()]}</span>
     `;
     grafico.appendChild(wrap);
-  }
+  });
 }
 
 // --- Resumen / calendario (reutilizado por Elita y por la vista de Juan Manolo) ---

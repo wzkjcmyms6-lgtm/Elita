@@ -556,8 +556,8 @@ h2 {
   gap: 6px;
   background: var(--tarjeta);
   border-radius: 18px;
-  padding: 18px 12px 14px;
-  height: 120px;
+  padding: 22px 8px 14px;
+  height: 144px;
   box-shadow: 0 4px 18px rgba(30,43,40,0.06);
 }
 
@@ -568,7 +568,17 @@ h2 {
   align-items: center;
   justify-content: flex-end;
   height: 100%;
-  gap: 8px;
+  gap: 6px;
+}
+
+.dia-duracion {
+  display: block;
+  min-height: 1.2em;
+  font-size: 0.6em;
+  font-weight: 800;
+  color: var(--teal-oscuro);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .dia-barra {
