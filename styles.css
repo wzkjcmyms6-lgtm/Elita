@@ -1,0 +1,355 @@
+:root {
+  --verde: #3a9d5d;
+  --verde-claro: #e6f5eb;
+  --naranja: #f0954a;
+  --texto: #26323b;
+  --texto-suave: #64727a;
+  --fondo: #fbf9f6;
+  --tarjeta: #ffffff;
+  --borde: #e4ddd3;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Verdana, Arial, sans-serif;
+  background: var(--fondo);
+  color: var(--texto);
+  font-size: 18px;
+  line-height: 1.4;
+  padding-bottom: 40px;
+}
+
+.app-header {
+  background: var(--verde);
+  color: #fff;
+  padding: 24px 20px 18px;
+  text-align: center;
+}
+
+.app-header h1 {
+  margin: 0 0 4px;
+  font-size: 1.7em;
+}
+
+.fecha {
+  margin: 0;
+  opacity: 0.9;
+  text-transform: capitalize;
+  font-size: 1em;
+}
+
+.tabs {
+  display: flex;
+  background: var(--tarjeta);
+  border-bottom: 2px solid var(--borde);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 16px 8px;
+  border: none;
+  background: none;
+  font-size: 1em;
+  font-weight: 600;
+  color: var(--texto-suave);
+  cursor: pointer;
+  border-bottom: 4px solid transparent;
+}
+
+.tab-btn.active {
+  color: var(--verde);
+  border-bottom-color: var(--verde);
+}
+
+main {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 20px 16px 10px;
+}
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+h2 {
+  font-size: 1.1em;
+  margin: 28px 0 12px;
+  color: var(--texto);
+}
+
+.racha-card {
+  background: linear-gradient(135deg, var(--naranja), #f6b26b);
+  color: #fff;
+  border-radius: 18px;
+  padding: 22px;
+  text-align: center;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.racha-numero {
+  display: block;
+  font-size: 2.6em;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.racha-texto {
+  display: block;
+  margin-top: 6px;
+  font-size: 1em;
+}
+
+.lista-ejercicios, .lista-gestion {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ejercicio-card {
+  background: var(--tarjeta);
+  border: 2px solid var(--borde);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.ejercicio-card.hecho {
+  border-color: var(--verde);
+  background: var(--verde-claro);
+}
+
+.check-btn {
+  flex-shrink: 0;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 2px solid var(--borde);
+  background: #fff;
+  font-size: 1.4em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: transparent;
+}
+
+.ejercicio-card.hecho .check-btn {
+  background: var(--verde);
+  border-color: var(--verde);
+  color: #fff;
+}
+
+.ejercicio-info {
+  flex: 1;
+}
+
+.ejercicio-nombre {
+  font-weight: 700;
+  font-size: 1.1em;
+  display: block;
+}
+
+.ejercicio-detalle {
+  color: var(--texto-suave);
+  font-size: 0.92em;
+}
+
+.eliminar-btn {
+  background: none;
+  border: none;
+  color: #c0463c;
+  font-size: 1.3em;
+  cursor: pointer;
+  padding: 6px 10px;
+}
+
+.msg-vacio {
+  color: var(--texto-suave);
+  text-align: center;
+  padding: 30px 10px;
+}
+
+.resumen-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.resumen-card {
+  background: var(--tarjeta);
+  border: 2px solid var(--borde);
+  border-radius: 14px;
+  padding: 14px 6px;
+  text-align: center;
+}
+
+.resumen-numero {
+  display: block;
+  font-size: 1.8em;
+  font-weight: 800;
+  color: var(--verde);
+}
+
+.resumen-etiqueta {
+  font-size: 0.8em;
+  color: var(--texto-suave);
+}
+
+.semana-grafico {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 6px;
+  background: var(--tarjeta);
+  border: 2px solid var(--borde);
+  border-radius: 14px;
+  padding: 16px 10px;
+  height: 130px;
+}
+
+.dia-barra-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+  gap: 6px;
+}
+
+.dia-barra {
+  width: 100%;
+  max-width: 30px;
+  border-radius: 6px;
+  background: var(--borde);
+  min-height: 6px;
+}
+
+.dia-barra.activo { background: var(--verde); }
+
+.dia-letra {
+  font-size: 0.75em;
+  color: var(--texto-suave);
+}
+
+.calendario-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.mes-titulo {
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.btn-icono {
+  background: var(--tarjeta);
+  border: 2px solid var(--borde);
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-size: 1em;
+  cursor: pointer;
+}
+
+.calendario {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  background: var(--tarjeta);
+  border: 2px solid var(--borde);
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.cal-celda {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-size: 0.85em;
+  color: var(--texto-suave);
+}
+
+.cal-celda.dia-completado {
+  background: var(--verde);
+  color: #fff;
+  font-weight: 700;
+}
+
+.cal-celda.hoy {
+  border: 2px solid var(--naranja);
+}
+
+.form-ejercicio {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--tarjeta);
+  border: 2px solid var(--borde);
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.form-ejercicio input {
+  font-size: 1em;
+  padding: 12px;
+  border: 2px solid var(--borde);
+  border-radius: 10px;
+  font-family: inherit;
+}
+
+.fila-doble {
+  display: flex;
+  gap: 10px;
+}
+
+.fila-doble input { flex: 1; min-width: 0; }
+
+.btn-principal {
+  background: var(--verde);
+  color: #fff;
+  border: none;
+  padding: 14px;
+  border-radius: 10px;
+  font-size: 1.05em;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sugerencias {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sugerencia-chip {
+  background: var(--tarjeta);
+  border: 2px solid var(--verde);
+  color: var(--verde);
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 0.9em;
+  cursor: pointer;
+}
+
+.gestion-card {
+  background: var(--tarjeta);
+  border: 2px solid var(--borde);
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}

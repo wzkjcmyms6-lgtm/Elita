@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mis Ejercicios</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="app-header">
+    <h1>💪 Mis Ejercicios</h1>
+    <p id="fecha-hoy" class="fecha"></p>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="hoy">Hoy</button>
+    <button class="tab-btn" data-tab="progreso">Mi Progreso</button>
+    <button class="tab-btn" data-tab="ejercicios">Mis Ejercicios</button>
+  </nav>
+
+  <main>
+    <!-- TAB: HOY -->
+    <section id="tab-hoy" class="tab-panel active">
+      <div class="racha-card">
+        <span class="racha-numero" id="racha-numero">0</span>
+        <span class="racha-texto">días seguidos haciendo ejercicio 🔥</span>
+      </div>
+
+      <div id="lista-hoy" class="lista-ejercicios"></div>
+
+      <p id="sin-ejercicios-msg" class="msg-vacio" hidden>
+        Todavía no tienes ejercicios. Ve a la pestaña "Mis Ejercicios" para agregar algunos.
+      </p>
+    </section>
+
+    <!-- TAB: PROGRESO -->
+    <section id="tab-progreso" class="tab-panel">
+      <div class="resumen-grid">
+        <div class="resumen-card">
+          <span class="resumen-numero" id="total-dias">0</span>
+          <span class="resumen-etiqueta">días totales</span>
+        </div>
+        <div class="resumen-card">
+          <span class="resumen-numero" id="total-semana">0</span>
+          <span class="resumen-etiqueta">esta semana</span>
+        </div>
+        <div class="resumen-card">
+          <span class="resumen-numero" id="mejor-racha">0</span>
+          <span class="resumen-etiqueta">mejor racha</span>
+        </div>
+      </div>
+
+      <h2>Últimos 7 días</h2>
+      <div id="semana-grafico" class="semana-grafico"></div>
+
+      <h2>Calendario</h2>
+      <div class="calendario-nav">
+        <button id="mes-anterior" class="btn-icono">◀</button>
+        <span id="mes-actual" class="mes-titulo"></span>
+        <button id="mes-siguiente" class="btn-icono">▶</button>
+      </div>
+      <div id="calendario" class="calendario"></div>
+    </section>
+
+    <!-- TAB: EJERCICIOS -->
+    <section id="tab-ejercicios" class="tab-panel">
+      <h2>Agregar un ejercicio</h2>
+      <form id="form-ejercicio" class="form-ejercicio">
+        <input type="text" id="nombre-ejercicio" placeholder="Nombre (ej. Caminar)" required maxlength="40">
+        <div class="fila-doble">
+          <input type="number" id="series-ejercicio" placeholder="Series" min="1" value="3">
+          <input type="number" id="reps-ejercicio" placeholder="Repeticiones" min="1" value="10">
+        </div>
+        <button type="submit" class="btn-principal">Agregar ejercicio</button>
+      </form>
+
+      <h2>Sugerencias rápidas</h2>
+      <div id="sugerencias" class="sugerencias"></div>
+
+      <h2>Mis ejercicios</h2>
+      <div id="lista-gestion" class="lista-gestion"></div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
