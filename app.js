@@ -571,17 +571,23 @@ function formatoDuracion(ms) {
   return `${String(min).padStart(2, "0")}:${String(seg).padStart(2, "0")}`;
 }
 
+const INACTIVIDAD_CRONOMETRO_MS = 3 * 60 * 1000;
+
 function verificarCronometroHoy(hechosHoy) {
   const hoy = hoyISO();
   const listaActual = semanas[semanaActual] || [];
   const completoHoy = diaCompletoParaLista(listaActual, hechosHoy);
+  const ahora = Date.now();
   let cambio = false;
   if (hechosHoy.length > 0 && !cronometros[hoy]) {
-    cronometros[hoy] = { inicio: Date.now(), fin: null };
+    cronometros[hoy] = { inicio: ahora, ultimaActividad: ahora, fin: null };
+    cambio = true;
+  } else if (cronometros[hoy] && !cronometros[hoy].fin) {
+    cronometros[hoy].ultimaActividad = ahora;
     cambio = true;
   }
   if (cronometros[hoy] && completoHoy && !cronometros[hoy].fin) {
-    cronometros[hoy].fin = Date.now();
+    cronometros[hoy].fin = ahora;
     cambio = true;
   }
   if (cambio) guardarCronometros(cronometros);
@@ -593,10 +599,12 @@ function actualizarCronometroUI() {
   const tarjeta = document.getElementById("tarjeta-cronometro");
   const valor = document.getElementById("cronometro-valor");
   const titulo = document.getElementById("cronometro-titulo");
-  const estado = cronometros[hoyISO()];
+  const hoy = hoyISO();
+  const estado = cronometros[hoy];
 
   if (!estado) {
     tarjeta.hidden = true;
+    document.getElementById("iniciar-descanso").hidden = false;
     if (cronometroEntrenamientoIntervalo) {
       clearInterval(cronometroEntrenamientoIntervalo);
       cronometroEntrenamientoIntervalo = null;
@@ -604,12 +612,22 @@ function actualizarCronometroUI() {
     return;
   }
 
+  if (!estado.fin && Date.now() - estado.ultimaActividad >= INACTIVIDAD_CRONOMETRO_MS) {
+    estado.fin = estado.ultimaActividad + INACTIVIDAD_CRONOMETRO_MS;
+    guardarCronometros(cronometros);
+  }
+
   tarjeta.hidden = false;
+  document.getElementById("iniciar-descanso").hidden = !!estado.fin;
   const fin = estado.fin || Date.now();
   valor.textContent = formatoDuracion(fin - estado.inicio);
 
+  const listaActual = semanas[semanaActual] || [];
+  const hechosHoy = registro[hoy] || [];
+  const completoHoy = diaCompletoParaLista(listaActual, hechosHoy);
+
   if (estado.fin) {
-    titulo.textContent = "¡Rutina completada en!";
+    titulo.textContent = completoHoy ? "¡Rutina completada en!" : "Entrenamiento pausado";
     if (cronometroEntrenamientoIntervalo) {
       clearInterval(cronometroEntrenamientoIntervalo);
       cronometroEntrenamientoIntervalo = null;
@@ -908,6 +926,7 @@ function iniciarJuan() {
   asegurarPerfilElita();
   semanas = cargarSemanasDe(ID_ELITA);
   registro = cargarRegistroDe(ID_ELITA);
+  cronometros = cargarCronometrosDe(ID_ELITA);
   mesVisible = new Date();
 
   document.getElementById("pantalla-perfil").hidden = true;
@@ -978,6 +997,9 @@ function renderHistorial() {
     const basesUnicas = [...new Set(registro[iso].map(idBaseDeClave))];
     const nombres = basesUnicas.map((id) => nombresPorId.get(id) || "Ejercicio eliminado");
 
+    const cronDia = cronometros[iso];
+    const duracionTexto = cronDia ? formatoDuracion((cronDia.fin || Date.now()) - cronDia.inicio) : "";
+
     const card = document.createElement("div");
     card.className = "ejercicio-card hecho";
     card.innerHTML = `
@@ -985,6 +1007,7 @@ function renderHistorial() {
       <div class="ejercicio-info">
         <span class="ejercicio-nombre">${escapeHtml(fechaTexto)}</span>
         <span class="ejercicio-detalle">${escapeHtml(nombres.join(", "))}</span>
+        ${duracionTexto ? `<span class="ejercicio-detalle">⏱️ ${duracionTexto}${cronDia.fin ? "" : " (en curso)"}</span>` : ""}
       </div>
     `;
     contenedor.appendChild(card);
