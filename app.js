@@ -341,6 +341,15 @@ function clavesSerie(ej) {
   return Array.from({ length: n }, (_, i) => `${ej.id}#${i + 1}`);
 }
 
+// --- Duración en segundos a partir del detalle (ej. "30 seg", "1 min" -> cronómetro por ejercicio) ---
+function extraerDuracionSegundos(detalle) {
+  const m = /(\d+)\s*(segundos|seg|minutos|min)\b/i.exec(detalle || "");
+  if (!m) return null;
+  const cantidad = parseInt(m[1], 10);
+  const esMinutos = m[2].toLowerCase().startsWith("min");
+  return esMinutos ? cantidad * 60 : cantidad;
+}
+
 function idBaseDeClave(clave) {
   return clave.split("#")[0];
 }
@@ -544,12 +553,16 @@ function renderHoy() {
               return `<button type="button" class="serie-btn${hecha ? " hecha" : ""}" data-clave="${clave}">${hecha ? "✓ " : ""}Serie ${i + 1}</button>`;
             })
             .join("");
+          const duracionEj = extraerDuracionSegundos(ej.detalle);
           card.innerHTML = `
             <span class="ejercicio-icono ${tileEjercicio(ej.id)}">${iconoEjercicio(ej.nombre)}</span>
             <div class="ejercicio-info">
               <span class="ejercicio-nombre">${escapeHtml(ej.nombre)}</span>
               <span class="ejercicio-detalle">${escapeHtml(ej.detalle)}</span>
-              ${ej.video ? `<button type="button" class="ver-video-btn" data-video="${escapeHtml(ej.video)}" data-nombre="${escapeHtml(ej.nombre)}">🎥 Ver guía</button>` : ""}
+              <div class="acciones-ejercicio">
+                ${ej.video ? `<button type="button" class="ver-video-btn" data-video="${escapeHtml(ej.video)}" data-nombre="${escapeHtml(ej.nombre)}">🎥 Ver guía</button>` : ""}
+                ${duracionEj ? `<button type="button" class="cronometrar-btn" data-segundos="${duracionEj}" data-nombre="${escapeHtml(ej.nombre)}">⏱️ Cronometrar</button>` : ""}
+              </div>
               <div class="series-fila">${botonesSeries}</div>
             </div>
           `;
@@ -561,13 +574,17 @@ function renderHoy() {
           });
         } else {
           const hecho = hechosHoy.includes(ej.id);
+          const duracionEj = extraerDuracionSegundos(ej.detalle);
           card.className = "ejercicio-card" + (hecho ? " hecho" : "");
           card.innerHTML = `
             <span class="ejercicio-icono ${tileEjercicio(ej.id)}">${iconoEjercicio(ej.nombre)}</span>
             <div class="ejercicio-info">
               <span class="ejercicio-nombre">${escapeHtml(ej.nombre)}</span>
               <span class="ejercicio-detalle">${escapeHtml(ej.detalle)}</span>
-              ${ej.video ? `<button type="button" class="ver-video-btn" data-video="${escapeHtml(ej.video)}" data-nombre="${escapeHtml(ej.nombre)}">🎥 Ver guía</button>` : ""}
+              <div class="acciones-ejercicio">
+                ${ej.video ? `<button type="button" class="ver-video-btn" data-video="${escapeHtml(ej.video)}" data-nombre="${escapeHtml(ej.nombre)}">🎥 Ver guía</button>` : ""}
+                ${duracionEj ? `<button type="button" class="cronometrar-btn" data-segundos="${duracionEj}" data-nombre="${escapeHtml(ej.nombre)}">⏱️ Cronometrar</button>` : ""}
+              </div>
             </div>
             <button class="check-btn" aria-label="Marcar completado">✓</button>
           `;
@@ -580,6 +597,12 @@ function renderHoy() {
           btn.addEventListener("click", (e) => {
             e.stopPropagation();
             abrirVideo(btn.dataset.video, btn.dataset.nombre);
+          });
+        });
+        card.querySelectorAll(".cronometrar-btn").forEach((btn) => {
+          btn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            iniciarTemporizador(Number(btn.dataset.segundos), btn.dataset.nombre, "¡Listo! 💪");
           });
         });
         contenedor.appendChild(card);
@@ -1230,10 +1253,10 @@ function cerrarTemporizador() {
   document.getElementById("temporizador-overlay").hidden = true;
 }
 
-function iniciarTemporizador(segundosTotal) {
+function iniciarTemporizador(segundosTotal, titulo = "Descanso", tituloFin = "¡Descanso terminado! 💪") {
   detenerTemporizador();
   let restante = segundosTotal;
-  document.getElementById("temporizador-titulo").textContent = "Descanso";
+  document.getElementById("temporizador-titulo").textContent = titulo;
   actualizarTemporizadorUI(restante, segundosTotal);
   document.getElementById("temporizador-overlay").hidden = false;
 
@@ -1242,7 +1265,7 @@ function iniciarTemporizador(segundosTotal) {
     if (restante <= 0) {
       detenerTemporizador();
       actualizarTemporizadorUI(0, segundosTotal);
-      document.getElementById("temporizador-titulo").textContent = "¡Descanso terminado! 💪";
+      document.getElementById("temporizador-titulo").textContent = tituloFin;
       sonarAlarma();
     } else {
       actualizarTemporizadorUI(restante, segundosTotal);
