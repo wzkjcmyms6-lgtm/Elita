@@ -175,6 +175,23 @@ function agruparPorCategoria(lista) {
     .filter((g) => g.items.length > 0);
 }
 
+// --- Series individuales por ejercicio (ej. "2x8" -> Serie 1 y Serie 2 marcables por separado) ---
+function contarSeries(ej) {
+  const coincidencia = /^(\d+)\s*[x×]/i.exec(ej.detalle || "");
+  const n = coincidencia ? parseInt(coincidencia[1], 10) : 1;
+  return n > 1 ? n : 1;
+}
+
+function clavesSerie(ej) {
+  const n = contarSeries(ej);
+  if (n <= 1) return [ej.id];
+  return Array.from({ length: n }, (_, i) => `${ej.id}#${i + 1}`);
+}
+
+function idBaseDeClave(clave) {
+  return clave.split("#")[0];
+}
+
 // --- Anillos SVG ---
 function crearAnillo(porcentaje, radio, grosor, colorInicio, colorFin, idGrad) {
   const centro = radio + grosor / 2 + 2;
@@ -325,15 +342,6 @@ document.querySelectorAll("#app-contenido .nav-btn").forEach((btn) => {
   btn.addEventListener("click", () => irATab(btn.dataset.tab));
 });
 
-document.querySelectorAll(".acceso-btn").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    irATab(btn.dataset.ir);
-    if (btn.dataset.accion === "agregar") {
-      setTimeout(() => document.getElementById("nombre-ejercicio").focus(), 150);
-    }
-  });
-});
-
 // --- Pestaña Hoy ---
 function renderHoy() {
   const contenedor = document.getElementById("lista-hoy");
@@ -359,27 +367,55 @@ function renderHoy() {
         contenedor.appendChild(titulo);
       }
       grupo.items.forEach((ej) => {
-        const hecho = hechosHoy.includes(ej.id);
+        const claves = clavesSerie(ej);
         const card = document.createElement("div");
-        card.className = "ejercicio-card" + (hecho ? " hecho" : "");
-        card.innerHTML = `
-          <span class="ejercicio-icono ${tileEjercicio(ej.id)}">${iconoEjercicio(ej.nombre)}</span>
-          <div class="ejercicio-info">
-            <span class="ejercicio-nombre">${escapeHtml(ej.nombre)}</span>
-            <span class="ejercicio-detalle">${escapeHtml(ej.detalle)}</span>
-          </div>
-          <button class="check-btn" aria-label="Marcar completado">✓</button>
-        `;
-        card.querySelector(".check-btn").addEventListener("click", () => {
-          toggleCompletado(ej.id);
-        });
+
+        if (claves.length > 1) {
+          const todasHechas = claves.every((clave) => hechosHoy.includes(clave));
+          card.className = "ejercicio-card multi-serie" + (todasHechas ? " hecho" : "");
+          const botonesSeries = claves
+            .map((clave, i) => {
+              const hecha = hechosHoy.includes(clave);
+              return `<button type="button" class="serie-btn${hecha ? " hecha" : ""}" data-clave="${clave}">${hecha ? "✓ " : ""}Serie ${i + 1}</button>`;
+            })
+            .join("");
+          card.innerHTML = `
+            <span class="ejercicio-icono ${tileEjercicio(ej.id)}">${iconoEjercicio(ej.nombre)}</span>
+            <div class="ejercicio-info">
+              <span class="ejercicio-nombre">${escapeHtml(ej.nombre)}</span>
+              <span class="ejercicio-detalle">${escapeHtml(ej.detalle)}</span>
+              <div class="series-fila">${botonesSeries}</div>
+            </div>
+          `;
+          card.querySelectorAll(".serie-btn").forEach((btn) => {
+            btn.addEventListener("click", () => {
+              const marcada = toggleCompletado(btn.dataset.clave);
+              if (marcada) iniciarTemporizador(60);
+            });
+          });
+        } else {
+          const hecho = hechosHoy.includes(ej.id);
+          card.className = "ejercicio-card" + (hecho ? " hecho" : "");
+          card.innerHTML = `
+            <span class="ejercicio-icono ${tileEjercicio(ej.id)}">${iconoEjercicio(ej.nombre)}</span>
+            <div class="ejercicio-info">
+              <span class="ejercicio-nombre">${escapeHtml(ej.nombre)}</span>
+              <span class="ejercicio-detalle">${escapeHtml(ej.detalle)}</span>
+            </div>
+            <button class="check-btn" aria-label="Marcar completado">✓</button>
+          `;
+          card.querySelector(".check-btn").addEventListener("click", () => {
+            const marcada = toggleCompletado(ej.id);
+            if (marcada) iniciarTemporizador(60);
+          });
+        }
         contenedor.appendChild(card);
       });
     });
   }
 
   const total = listaActual.length;
-  const hechos = hechosHoy.filter((id) => listaActual.some((e) => e.id === id)).length;
+  const hechos = listaActual.filter((ej) => clavesSerie(ej).every((clave) => hechosHoy.includes(clave))).length;
   const porcentaje = total > 0 ? Math.round((hechos / total) * 100) : 0;
 
   document.getElementById("anillo-hoy-wrap").innerHTML =
@@ -393,7 +429,7 @@ function renderHoy() {
 function contarCompletadosAlgunaVez(lista) {
   const completados = new Set();
   Object.values(registro).forEach((ids) => ids.forEach((id) => completados.add(id)));
-  return lista.filter((ej) => completados.has(ej.id)).length;
+  return lista.filter((ej) => clavesSerie(ej).every((clave) => completados.has(clave))).length;
 }
 
 function verificarProgresionSemana() {
@@ -419,10 +455,13 @@ function toggleCompletado(id) {
   const clave = hoyISO();
   const hechosHoy = registro[clave] || [];
   const index = hechosHoy.indexOf(id);
+  let marcada;
   if (index >= 0) {
     hechosHoy.splice(index, 1);
+    marcada = false;
   } else {
     hechosHoy.push(id);
+    marcada = true;
   }
   if (hechosHoy.length > 0) {
     registro[clave] = hechosHoy;
@@ -432,6 +471,7 @@ function toggleCompletado(id) {
   guardarRegistro(registro);
   verificarProgresionSemana();
   renderTodo();
+  return marcada;
 }
 
 function diaCompletado(fechaISO) {
@@ -503,7 +543,8 @@ function calcularResumenSemana() {
     const iso = new Date(fecha.getTime() - fecha.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
     if (diaCompletado(iso)) {
       contadorSemana++;
-      ejerciciosSemana += registro[iso].length;
+      const basesUnicas = new Set(registro[iso].map(idBaseDeClave));
+      ejerciciosSemana += basesUnicas.size;
     }
   }
   return { contadorSemana, ejerciciosSemana };
@@ -794,7 +835,8 @@ function renderHistorial() {
       day: "numeric",
       month: "long",
     });
-    const nombres = registro[iso].map((id) => nombresPorId.get(id) || "Ejercicio eliminado");
+    const basesUnicas = [...new Set(registro[iso].map(idBaseDeClave))];
+    const nombres = basesUnicas.map((id) => nombresPorId.get(id) || "Ejercicio eliminado");
 
     const card = document.createElement("div");
     card.className = "ejercicio-card hecho";

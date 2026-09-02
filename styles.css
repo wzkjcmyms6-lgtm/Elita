@@ -486,41 +486,6 @@ h2 {
 
 .dia-letra { font-size: 0.72em; color: var(--texto-suave); font-weight: 700; }
 
-/* ---------- Accesos rápidos ---------- */
-.accesos-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-.acceso-btn {
-  background: var(--tarjeta);
-  border: none;
-  border-radius: 18px;
-  padding: 16px 12px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 10px;
-  font-family: inherit;
-  font-size: 0.92em;
-  font-weight: 700;
-  color: var(--texto);
-  cursor: pointer;
-  box-shadow: 0 4px 18px rgba(30,43,40,0.06);
-  text-align: left;
-}
-
-.acceso-icono {
-  width: 42px;
-  height: 42px;
-  border-radius: 13px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.3em;
-}
-
 .tile-teal { background: linear-gradient(135deg, var(--teal), var(--teal-oscuro)); }
 .tile-coral { background: linear-gradient(135deg, var(--coral), #d9663a); }
 .tile-oro { background: linear-gradient(135deg, var(--oro), #a97c2f); }
@@ -590,6 +555,38 @@ h2 {
 }
 
 .ejercicio-card.hecho .check-btn {
+  background: var(--teal);
+  border-color: var(--teal);
+  color: #fff;
+}
+
+.ejercicio-card.multi-serie {
+  align-items: flex-start;
+}
+
+.series-fila {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.serie-btn {
+  flex: 1;
+  min-width: 90px;
+  background: var(--fondo);
+  border: 2px solid var(--borde);
+  border-radius: 10px;
+  padding: 10px 8px;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 0.88em;
+  color: var(--texto);
+  cursor: pointer;
+  text-align: center;
+}
+
+.serie-btn.hecha {
   background: var(--teal);
   border-color: var(--teal);
   color: #fff;
