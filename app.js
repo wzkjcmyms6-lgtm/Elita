@@ -71,6 +71,7 @@ function aplicarDatosRemotos(datos) {
 
 // --- Configuración fija ---
 const ID_ELITA = "elita";
+const CLAVE_ELITA = "1701";
 const CLAVE_JUAN = "1925";
 const CLAVE_PERFILES = "mis-ejercicios-perfiles";
 const CLAVE_PERFIL_ACTIVO = "mis-ejercicios-perfil-activo";
@@ -359,7 +360,13 @@ function mostrarPantallaPerfil() {
   document.getElementById("pantalla-perfil").hidden = false;
 }
 
-function mostrarPantallaClave() {
+let perfilPendienteClave = null;
+
+function mostrarPantallaClave(perfil) {
+  perfilPendienteClave = perfil;
+  document.getElementById("clave-titulo").textContent = perfil === ID_ELITA ? "Hola, Elita" : "Hola, Juan Manolo";
+  document.getElementById("clave-subtitulo").textContent =
+    perfil === ID_ELITA ? "Ingresá tu clave para hacer tus ejercicios." : "Ingresá la clave para ver el progreso de Elita.";
   document.getElementById("input-clave").value = "";
   document.getElementById("clave-error").hidden = true;
   document.getElementById("pantalla-perfil").hidden = true;
@@ -368,24 +375,30 @@ function mostrarPantallaClave() {
 }
 
 document.getElementById("btn-perfil-elita").addEventListener("click", () => {
-  asegurarPerfilElita();
-  localStorage.setItem(CLAVE_PERFIL_ACTIVO, ID_ELITA);
-  iniciarApp(ID_ELITA);
+  mostrarPantallaClave(ID_ELITA);
 });
 
 document.getElementById("btn-perfil-juan").addEventListener("click", () => {
-  mostrarPantallaClave();
+  mostrarPantallaClave("juan");
 });
 
 document.getElementById("volver-selector").addEventListener("click", () => {
+  perfilPendienteClave = null;
   mostrarPantallaPerfil();
 });
 
 document.getElementById("form-clave").addEventListener("submit", (e) => {
   e.preventDefault();
   const input = document.getElementById("input-clave");
-  if (input.value.trim() === CLAVE_JUAN) {
-    iniciarJuan();
+  const claveCorrecta = perfilPendienteClave === ID_ELITA ? CLAVE_ELITA : CLAVE_JUAN;
+  if (input.value.trim() === claveCorrecta) {
+    if (perfilPendienteClave === ID_ELITA) {
+      asegurarPerfilElita();
+      localStorage.setItem(CLAVE_PERFIL_ACTIVO, ID_ELITA);
+      iniciarApp(ID_ELITA);
+    } else {
+      iniciarJuan();
+    }
   } else {
     document.getElementById("clave-error").hidden = false;
     input.value = "";
