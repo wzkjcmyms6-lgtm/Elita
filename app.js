@@ -121,6 +121,7 @@ const VIDEOS_CONOCIDOS = {
   "Puente de glúteo": "videos/puente-gluteo.mp4",
   "Remo sentada con banda": "videos/remo-banda.mp4",
   "Elevación lateral de brazos": "videos/elevacion-lateral-brazos.mp4",
+  "Báscula pélvica": "videos/bascula-pelvica.mp4",
 };
 
 // --- Músculo/zona entrenada por ejercicio principal, para el resumen de fin de entrenamiento ---
@@ -149,7 +150,7 @@ function semana1Inicial() {
     ejercicioInicial("Puente de glúteo", "2x8 · glúteos y core", "principal", VIDEOS_CONOCIDOS["Puente de glúteo"], MUSCULOS_CONOCIDOS["Puente de glúteo"]),
     ejercicioInicial("Remo sentada con banda", "2x10 · espalda", "principal", VIDEOS_CONOCIDOS["Remo sentada con banda"], MUSCULOS_CONOCIDOS["Remo sentada con banda"]),
     ejercicioInicial("Elevación lateral de brazos", "2x10 · hombros", "principal", VIDEOS_CONOCIDOS["Elevación lateral de brazos"], MUSCULOS_CONOCIDOS["Elevación lateral de brazos"]),
-    ejercicioInicial("Báscula pélvica", "2x10 · core y espalda baja", "principal", null, MUSCULOS_CONOCIDOS["Báscula pélvica"]),
+    ejercicioInicial("Báscula pélvica", "2x10 · core y espalda baja", "principal", VIDEOS_CONOCIDOS["Báscula pélvica"], MUSCULOS_CONOCIDOS["Báscula pélvica"]),
     ejercicioInicial("Elevación de talones", "2x10 · pantorrillas, apoyada en silla", "principal", null, MUSCULOS_CONOCIDOS["Elevación de talones"]),
     ejercicioInicial("Extensión de tríceps con banda", "2x10 · brazos, sentada", "principal", null, MUSCULOS_CONOCIDOS["Extensión de tríceps con banda"]),
     ejercicioInicial("Equilibrio en un pie", "2x10 seg por lado · equilibrio, apoyo en silla", "principal", null, MUSCULOS_CONOCIDOS["Equilibrio en un pie"]),
