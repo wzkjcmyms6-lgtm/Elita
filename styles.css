@@ -12,6 +12,8 @@
   --fondo: #f7faf9;
   --tarjeta: #ffffff;
   --borde: #e7eeec;
+  --fuente: "Nunito Sans", "Segoe UI", Verdana, Arial, sans-serif;
+  --fuente-titulo: "Quicksand", "Segoe UI", Verdana, Arial, sans-serif;
   color-scheme: light;
 }
 
@@ -21,21 +23,51 @@
 
 body {
   margin: 0;
-  font-family: "Segoe UI", Verdana, Arial, sans-serif;
+  font-family: var(--fuente);
   background: var(--fondo);
   color: var(--texto);
   font-size: 18px;
   line-height: 1.4;
 }
 
+@keyframes tarjetaEntra {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes overlayEntra {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes rebote {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.12); }
+}
+
+button {
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.15s ease;
+}
+
+button:active {
+  transform: scale(0.96);
+}
+
 /* ---------- Pantalla de perfil ---------- */
+@keyframes flotar {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
 .pantalla-perfil {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 32px 20px;
-  background: linear-gradient(160deg, #bfe8dc 0%, #eef2d6 55%, #f7d9c4 100%);
+  background: radial-gradient(circle at 20% 15%, #d3f2e6 0%, transparent 45%),
+    radial-gradient(circle at 85% 80%, #fbdcc0 0%, transparent 50%),
+    linear-gradient(160deg, #bfe8dc 0%, #eef2d6 55%, #f7d9c4 100%);
 }
 
 .perfil-hero {
@@ -49,18 +81,21 @@ body {
   height: 84px;
   margin: 0 auto 18px;
   border-radius: 26px;
-  background: rgba(255,255,255,0.55);
+  background: rgba(255,255,255,0.6);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 2.4em;
-  box-shadow: 0 8px 24px rgba(31,111,99,0.18);
+  box-shadow: 0 10px 28px rgba(31,111,99,0.22);
+  animation: flotar 3.2s ease-in-out infinite;
 }
 
 .perfil-titulo {
+  font-family: var(--fuente-titulo);
   margin: 0 0 10px;
   font-size: 2em;
+  font-weight: 800;
   line-height: 1.15;
   color: var(--teal-oscuro);
 }
@@ -87,10 +122,13 @@ body {
   border: none;
   border-radius: 16px;
   padding: 16px;
-  box-shadow: 0 2px 10px rgba(31,111,99,0.08);
+  box-shadow: 0 4px 16px rgba(31,111,99,0.12);
   cursor: pointer;
   text-align: left;
+  animation: tarjetaEntra 0.4s ease backwards;
 }
+
+.lista-perfiles .tarjeta-perfil-fijo:nth-child(2) { animation-delay: 0.08s; }
 
 .tarjeta-perfil-fijo:active {
   transform: scale(0.98);
@@ -104,8 +142,9 @@ body {
 }
 
 .tarjeta-perfil-nombre {
+  font-family: var(--fuente-titulo);
   font-weight: 800;
-  font-size: 1.1em;
+  font-size: 1.15em;
   color: var(--texto);
 }
 
@@ -133,6 +172,8 @@ body {
   align-items: center;
   justify-content: center;
   font-weight: 800;
+  font-family: var(--fuente-titulo);
+  box-shadow: 0 3px 10px rgba(31,111,99,0.35);
 }
 
 .form-perfil {
@@ -193,14 +234,18 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 22px 20px 18px;
+  padding: 22px 20px 20px;
   background: linear-gradient(135deg, #d7f0e8, #f3e9d3);
+  box-shadow: 0 4px 14px rgba(30,43,40,0.05);
+  position: relative;
+  z-index: 1;
 }
 
 .saludo-usuario {
   margin: 0 0 2px;
   font-weight: 800;
-  font-size: 1.25em;
+  font-size: 1.3em;
+  font-family: var(--fuente-titulo);
   color: var(--teal-oscuro);
 }
 
@@ -237,6 +282,8 @@ body {
   justify-content: center;
   font-weight: 800;
   font-size: 1.1em;
+  font-family: var(--fuente-titulo);
+  box-shadow: 0 3px 10px rgba(31,111,99,0.35);
 }
 
 .app-main {
@@ -253,7 +300,9 @@ body {
 .tab-panel.active { display: block; }
 
 h2 {
-  font-size: 1.1em;
+  font-family: var(--fuente-titulo);
+  font-size: 1.15em;
+  font-weight: 800;
   margin: 26px 0 12px;
   color: var(--texto);
 }
@@ -297,12 +346,14 @@ h2 {
   text-align: center;
   width: 100%;
   max-width: 320px;
-  box-shadow: 0 12px 36px rgba(0,0,0,0.25);
+  box-shadow: 0 16px 44px rgba(0,0,0,0.28);
+  animation: overlayEntra 0.25s ease;
 }
 
 .temporizador-titulo {
   font-weight: 800;
   font-size: 1.2em;
+  font-family: var(--fuente-titulo);
   margin: 0 0 20px;
 }
 
@@ -366,8 +417,9 @@ h2 {
 
 .resumen-icono {
   display: block;
-  font-size: 2.4em;
+  font-size: 2.6em;
   margin-bottom: 4px;
+  animation: rebote 0.6s ease 0.15s backwards;
 }
 
 .resumen-fila {
@@ -390,6 +442,7 @@ h2 {
 .resumen-valor-fila {
   font-size: 1.2em;
   font-weight: 800;
+  font-family: var(--fuente-titulo);
   color: var(--teal-oscuro);
 }
 
@@ -413,8 +466,9 @@ h2 {
 .semana-acordeon {
   background: var(--tarjeta);
   border-radius: 16px;
-  box-shadow: 0 4px 18px rgba(30,43,40,0.06);
+  box-shadow: 0 5px 20px rgba(30,43,40,0.07);
   overflow: hidden;
+  animation: tarjetaEntra 0.3s ease backwards;
 }
 
 .semana-resumen {
@@ -447,6 +501,8 @@ h2 {
   align-items: center;
   gap: 8px;
   flex: 1;
+  font-family: var(--fuente-titulo);
+  font-size: 1.05em;
 }
 
 .semana-badge {
@@ -501,11 +557,12 @@ h2 {
   display: flex;
   align-items: center;
   gap: 18px;
-  box-shadow: 0 4px 18px rgba(30,43,40,0.06);
+  box-shadow: 0 6px 22px rgba(30,43,40,0.08);
+  animation: tarjetaEntra 0.35s ease backwards;
 }
 
 .anillo-svg-wrap { flex-shrink: 0; position: relative; width: 120px; height: 120px; }
-.anillo-svg-wrap svg { width: 100%; height: 100%; }
+.anillo-svg-wrap svg { width: 100%; height: 100%; filter: drop-shadow(0 2px 6px rgba(47,158,143,0.3)); }
 
 .anillo-porcentaje {
   position: absolute;
@@ -515,12 +572,13 @@ h2 {
   justify-content: center;
   font-size: 1.5em;
   font-weight: 800;
+  font-family: var(--fuente-titulo);
   color: var(--teal-oscuro);
 }
 
 .anillo-info { display: flex; flex-direction: column; gap: 4px; }
 
-.anillo-titulo { font-weight: 800; font-size: 1.05em; }
+.anillo-titulo { font-weight: 800; font-size: 1.05em; font-family: var(--fuente-titulo); }
 
 .anillo-detalle { color: var(--texto-suave); font-size: 0.9em; }
 
@@ -532,8 +590,9 @@ h2 {
   display: flex;
   align-items: center;
   gap: 14px;
-  box-shadow: 0 4px 18px rgba(30,43,40,0.06);
+  box-shadow: 0 6px 22px rgba(30,43,40,0.08);
   margin-top: 12px;
+  animation: tarjetaEntra 0.35s ease backwards;
 }
 
 .cronometro-icono { font-size: 1.6em; }
@@ -542,7 +601,7 @@ h2 {
 
 .cronometro-titulo { font-weight: 700; font-size: 0.85em; color: var(--texto-suave); }
 
-.cronometro-valor { font-weight: 800; font-size: 1.3em; font-variant-numeric: tabular-nums; color: var(--teal-oscuro); }
+.cronometro-valor { font-weight: 800; font-size: 1.3em; font-family: var(--fuente-titulo); font-variant-numeric: tabular-nums; color: var(--teal-oscuro); }
 
 /* ---------- Gráfico semanal ---------- */
 .semana-grafico {
@@ -607,14 +666,16 @@ h2 {
   display: flex;
   align-items: center;
   gap: 14px;
-  box-shadow: 0 4px 18px rgba(30,43,40,0.06);
+  box-shadow: 0 5px 20px rgba(30,43,40,0.07);
   border: 2px solid transparent;
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+  animation: tarjetaEntra 0.3s ease backwards;
 }
 
 .ejercicio-card.hecho {
   border-color: var(--teal);
   background: var(--teal-suave);
+  box-shadow: 0 5px 20px rgba(47,158,143,0.16);
 }
 
 .ejercicio-icono {
@@ -627,6 +688,7 @@ h2 {
   justify-content: center;
   font-size: 1.5em;
   color: #fff;
+  box-shadow: 0 3px 10px rgba(30,43,40,0.15);
 }
 
 .ejercicio-info { flex: 1; min-width: 0; }
@@ -634,6 +696,7 @@ h2 {
 .ejercicio-nombre {
   font-weight: 700;
   font-size: 1.05em;
+  font-family: var(--fuente-titulo);
   display: block;
 }
 
@@ -661,6 +724,7 @@ h2 {
   background: var(--teal);
   border-color: var(--teal);
   color: #fff;
+  animation: rebote 0.3s ease;
 }
 
 .ejercicio-card.multi-serie {
@@ -693,6 +757,7 @@ h2 {
   background: var(--teal);
   border-color: var(--teal);
   color: #fff;
+  animation: rebote 0.3s ease;
 }
 
 .eliminar-btn {
@@ -751,13 +816,15 @@ h2 {
   border-radius: 16px;
   padding: 14px 6px;
   text-align: center;
-  box-shadow: 0 4px 18px rgba(30,43,40,0.06);
+  box-shadow: 0 5px 20px rgba(30,43,40,0.07);
+  animation: tarjetaEntra 0.3s ease backwards;
 }
 
 .resumen-numero {
   display: block;
-  font-size: 1.7em;
+  font-size: 1.8em;
   font-weight: 800;
+  font-family: var(--fuente-titulo);
   color: var(--teal-oscuro);
 }
 
@@ -860,7 +927,8 @@ h2 {
   display: flex;
   align-items: center;
   gap: 12px;
-  box-shadow: 0 4px 18px rgba(30,43,40,0.06);
+  box-shadow: 0 5px 20px rgba(30,43,40,0.07);
+  animation: tarjetaEntra 0.3s ease backwards;
 }
 
 /* ---------- Perfil ---------- */
@@ -869,7 +937,7 @@ h2 {
   border-radius: 20px;
   padding: 26px 20px;
   text-align: center;
-  box-shadow: 0 4px 18px rgba(30,43,40,0.06);
+  box-shadow: 0 6px 22px rgba(30,43,40,0.08);
   margin-bottom: 20px;
 }
 
@@ -885,12 +953,15 @@ h2 {
   justify-content: center;
   font-weight: 800;
   font-size: 1.8em;
+  font-family: var(--fuente-titulo);
+  box-shadow: 0 4px 14px rgba(31,111,99,0.35);
 }
 
 .perfil-resumen-nombre {
   display: block;
   font-weight: 800;
-  font-size: 1.2em;
+  font-size: 1.25em;
+  font-family: var(--fuente-titulo);
   margin-bottom: 14px;
 }
 
@@ -907,6 +978,7 @@ h2 {
 
 .perfil-resumen-stats strong {
   font-size: 1.5em;
+  font-family: var(--fuente-titulo);
   color: var(--teal-oscuro);
 }
 
@@ -938,11 +1010,13 @@ h2 {
   font-size: 0.7em;
   font-weight: 700;
   cursor: pointer;
+  transition: color 0.2s ease;
 }
 
 .nav-btn svg {
   width: 24px;
   height: 24px;
+  transition: background 0.2s ease, transform 0.2s ease;
 }
 
 .nav-btn.active {
@@ -954,4 +1028,5 @@ h2 {
   border-radius: 10px;
   padding: 3px;
   box-sizing: content-box;
+  transform: scale(1.08);
 }

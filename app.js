@@ -742,6 +742,7 @@ function mostrarResumenEntrenamiento(listaActual, hechosHoy, estadoCronometro) {
   document.getElementById("resumen-tiempo").textContent = duracion;
   document.getElementById("resumen-musculos").textContent = musculos.length > 0 ? musculos.join(", ") : "—";
   document.getElementById("resumen-overlay").hidden = false;
+  sonarFanfarria();
 }
 
 let cronometroEntrenamientoIntervalo = null;
@@ -1219,25 +1220,43 @@ function actualizarTemporizadorUI(restante, total) {
     `<div class="anillo-porcentaje">${restante}</div>`;
 }
 
+function reproducirTono(ctx, frecuencia, inicio, duracion, tipo, volumen) {
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = tipo;
+  osc.frequency.value = frecuencia;
+  gain.gain.setValueAtTime(volumen, ctx.currentTime + inicio);
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + inicio + duracion);
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(ctx.currentTime + inicio);
+  osc.stop(ctx.currentTime + inicio + duracion);
+}
+
+// Campanita de dos notas (sol5 -> do6), usada al terminar un descanso o el cronómetro de un ejercicio.
 function sonarAlarma() {
   try {
     const Ctx = window.AudioContext || window.webkitAudioContext;
     const ctx = new Ctx();
-    [0, 0.35, 0.7].forEach((t) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.value = 880;
-      gain.gain.setValueAtTime(0.25, ctx.currentTime + t);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.3);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(ctx.currentTime + t);
-      osc.stop(ctx.currentTime + t + 0.3);
+    reproducirTono(ctx, 784.0, 0, 0.3, "sine", 0.28);
+    reproducirTono(ctx, 1046.5, 0.2, 0.45, "sine", 0.28);
+  } catch (e) {}
+  if (navigator.vibrate) {
+    try { navigator.vibrate([200, 100, 200]); } catch (e) {}
+  }
+}
+
+// Fanfarria ascendente (do5-mi5-sol5-do6), usada al completar toda la rutina del día.
+function sonarFanfarria() {
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    const ctx = new Ctx();
+    [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
+      reproducirTono(ctx, freq, i * 0.14, 0.35, "triangle", 0.22);
     });
   } catch (e) {}
   if (navigator.vibrate) {
-    try { navigator.vibrate([200, 100, 200, 100, 200]); } catch (e) {}
+    try { navigator.vibrate([150, 60, 150, 60, 250]); } catch (e) {}
   }
 }
 
