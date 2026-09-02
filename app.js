@@ -600,15 +600,16 @@ function renderProgreso() {
   const racha = calcularRachaActual();
   const metaEjercicios = Math.max(1, (semanas[semanaActual] || []).length * 7);
 
+  const metaDiasActivos = 5;
   const anillos = [
-    { porcentaje: (contadorSemana / 7) * 100, color: "#2f9e8f" },
+    { porcentaje: (contadorSemana / metaDiasActivos) * 100, color: "#2f9e8f" },
     { porcentaje: (ejerciciosSemana / metaEjercicios) * 100, color: "#ef8a5f" },
     { porcentaje: (Math.min(racha, 7) / 7) * 100, color: "#c99a4a" },
   ];
   document.getElementById("anillos-semana-wrap").innerHTML = crearAnillosConcentricos(anillos);
 
   document.getElementById("anillos-leyenda").innerHTML = `
-    <div class="leyenda-fila"><span class="leyenda-punto" style="background:#2f9e8f"></span><span class="leyenda-texto">Días activos</span><span class="leyenda-valor">${contadorSemana}/7</span></div>
+    <div class="leyenda-fila"><span class="leyenda-punto" style="background:#2f9e8f"></span><span class="leyenda-texto">Días activos</span><span class="leyenda-valor">${contadorSemana}/${metaDiasActivos}</span></div>
     <div class="leyenda-fila"><span class="leyenda-punto" style="background:#ef8a5f"></span><span class="leyenda-texto">Ejercicios hechos</span><span class="leyenda-valor">${ejerciciosSemana}</span></div>
     <div class="leyenda-fila"><span class="leyenda-punto" style="background:#c99a4a"></span><span class="leyenda-texto">Racha actual</span><span class="leyenda-valor">${racha} días</span></div>
   `;
