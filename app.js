@@ -83,7 +83,6 @@ const ID_ELITA = "elita";
 const CLAVE_ELITA = "1701";
 const CLAVE_JUAN = "1925";
 const CLAVE_PERFILES = "mis-ejercicios-perfiles";
-const CLAVE_PERFIL_ACTIVO = "mis-ejercicios-perfil-activo";
 
 // --- Versículo del día ---
 const VERSICULOS = [
@@ -540,7 +539,6 @@ document.getElementById("form-clave").addEventListener("submit", (e) => {
   if (input.value.trim() === claveCorrecta) {
     if (perfilPendienteClave === ID_ELITA) {
       asegurarPerfilElita();
-      localStorage.setItem(CLAVE_PERFIL_ACTIVO, ID_ELITA);
       iniciarApp(ID_ELITA);
     } else {
       iniciarJuan();
@@ -553,7 +551,6 @@ document.getElementById("form-clave").addEventListener("submit", (e) => {
 });
 
 document.getElementById("cerrar-sesion-elita").addEventListener("click", () => {
-  localStorage.removeItem(CLAVE_PERFIL_ACTIVO);
   mostrarPantallaPerfil();
 });
 
@@ -1423,10 +1420,6 @@ document.getElementById("exportar-historial-btn").addEventListener("click", () =
 });
 
 // --- Inicio ---
-const idActivoGuardado = localStorage.getItem(CLAVE_PERFIL_ACTIVO);
-if (idActivoGuardado === ID_ELITA) {
-  asegurarPerfilElita();
-  iniciarApp(ID_ELITA);
-} else {
-  mostrarPantallaPerfil();
-}
+// Siempre se pide la clave al entrar o recargar la página; el progreso
+// guardado (semanas, registro, cronómetros) no se ve afectado por esto.
+mostrarPantallaPerfil();
