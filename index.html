@@ -53,56 +53,23 @@
   </section>
 
   <!-- APP DE ELITA -->
-  <div id="app-contenido" class="app-contenido" hidden>
+  <div id="app-contenido" class="app-contenido app-elita" hidden>
     <header class="app-header">
       <div>
         <p class="saludo-usuario" id="saludo-usuario"></p>
         <p id="fecha-hoy" class="fecha"></p>
       </div>
-      <div class="avatar-header" id="avatar-header"></div>
+      <button type="button" id="cerrar-sesion-elita" class="salir-header-btn">Salir</button>
     </header>
 
     <main class="app-main">
-      <!-- TAB: HOY -->
-      <section id="tab-hoy" class="tab-panel active">
-        <div class="semana-actual-pill" id="semana-actual-pill">Semana 1</div>
+      <!-- INICIO: se arma desde elita.js -->
+      <section id="elita-inicio" class="tab-panel active"></section>
 
-        <div class="tarjeta-anillo">
-          <div class="anillo-svg-wrap" id="anillo-hoy-wrap"></div>
-          <div class="anillo-info">
-            <span class="anillo-titulo">Progreso de hoy</span>
-            <span class="anillo-detalle" id="anillo-hoy-detalle">0 de 0 ejercicios</span>
-          </div>
-        </div>
-
-        <div class="tarjeta-cronometro" id="tarjeta-cronometro" hidden>
-          <span class="cronometro-icono" aria-hidden="true">⏱️</span>
-          <div class="cronometro-info">
-            <span class="cronometro-titulo" id="cronometro-titulo">Tiempo de entrenamiento</span>
-            <span class="cronometro-valor" id="cronometro-valor">00:00</span>
-          </div>
-        </div>
-
-        <h2>Actividad semanal</h2>
-        <div id="semana-grafico" class="semana-grafico"></div>
-
-        <h2>Ejercicios de hoy</h2>
-        <div id="lista-hoy" class="lista-ejercicios"></div>
-
-        <p id="sin-ejercicios-msg" class="msg-vacio" hidden>
-          Todavía no tienes ejercicios en esta semana. Andá a la pestaña "Semanas" para agregar algunos.
-        </p>
-      </section>
-
-      <!-- TAB: SEMANAS -->
-      <section id="tab-ejercicios" class="tab-panel">
-        <h2>Rutina por semanas</h2>
-        <p class="semanas-ayuda">Completá los ejercicios de la semana activa durante 5 días distintos para desbloquear la semana siguiente.</p>
-        <div id="lista-semanas" class="lista-semanas"></div>
-      </section>
-
-      <!-- TAB: PROGRESO -->
+      <!-- MI PROGRESO -->
       <section id="tab-progreso" class="tab-panel">
+        <button type="button" id="volver-inicio-elita" class="btn-grande btn-secundario-grande">← Volver</button>
+        <h2>Mi progreso</h2>
         <div class="resumen-grid">
           <div class="resumen-card">
             <span class="resumen-numero" id="total-dias">0</span>
@@ -132,40 +99,7 @@
         </div>
         <div id="calendario" class="calendario"></div>
       </section>
-
-      <!-- TAB: PERFIL -->
-      <section id="tab-perfil" class="tab-panel">
-        <div class="perfil-resumen-tarjeta">
-          <div class="avatar-grande" id="avatar-grande"></div>
-          <span class="perfil-resumen-nombre" id="perfil-resumen-nombre"></span>
-          <div class="perfil-resumen-stats">
-            <div><strong id="perfil-racha">0</strong><span>racha</span></div>
-            <div><strong id="perfil-dias">0</strong><span>días</span></div>
-          </div>
-        </div>
-
-        <button type="button" id="cerrar-sesion-elita" class="btn-secundario">Cerrar sesión</button>
-      </section>
     </main>
-
-    <nav class="bottom-nav">
-      <button class="nav-btn active" data-tab="hoy">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg>
-        <span>Hoy</span>
-      </button>
-      <button class="nav-btn" data-tab="ejercicios">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="12" x2="18" y2="12"/><rect x="2.5" y="9" width="3.5" height="6" rx="1"/><rect x="18" y="9" width="3.5" height="6" rx="1"/><rect x="0.5" y="10.5" width="2" height="3" rx="0.6"/><rect x="21" y="10.5" width="2" height="3" rx="0.6"/></svg>
-        <span>Semanas</span>
-      </button>
-      <button class="nav-btn" data-tab="progreso">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="20" x2="4" y2="12"/><line x1="10" y1="20" x2="10" y2="6"/><line x1="16" y1="20" x2="16" y2="14"/><line x1="21" y1="20" x2="3" y2="20"/></svg>
-        <span>Progreso</span>
-      </button>
-      <button class="nav-btn" data-tab="perfil">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
-        <span>Perfil</span>
-      </button>
-    </nav>
   </div>
 
   <!-- APP DE JUAN MANOLO (SOLO VISTA) -->
@@ -232,38 +166,12 @@
     </nav>
   </div>
 
-  <!-- TEMPORIZADOR DE DESCANSO -->
-  <div id="temporizador-overlay" class="temporizador-overlay" hidden>
-    <div class="temporizador-tarjeta">
-      <p id="temporizador-titulo" class="temporizador-titulo">Descanso</p>
-      <div class="anillo-svg-wrap temporizador-anillo" id="temporizador-anillo-wrap"></div>
-      <button type="button" id="cerrar-temporizador" class="btn-secundario">Cancelar</button>
-    </div>
-  </div>
-
   <!-- VIDEO GUÍA -->
   <div id="video-overlay" class="temporizador-overlay video-overlay" hidden>
     <div class="temporizador-tarjeta video-tarjeta">
       <p id="video-titulo" class="temporizador-titulo">Guía</p>
       <video id="video-guia" class="video-guia" controls playsinline></video>
       <button type="button" id="cerrar-video" class="btn-secundario">Cerrar</button>
-    </div>
-  </div>
-
-  <!-- RESUMEN DE FIN DE ENTRENAMIENTO -->
-  <div id="resumen-overlay" class="temporizador-overlay" hidden>
-    <div class="temporizador-tarjeta resumen-tarjeta">
-      <span class="resumen-icono" aria-hidden="true">🎉</span>
-      <p class="temporizador-titulo">Entrenamiento del día</p>
-      <div class="resumen-fila">
-        <span class="resumen-etiqueta-fila">Tiempo total</span>
-        <span class="resumen-valor-fila" id="resumen-tiempo">00:00</span>
-      </div>
-      <div class="resumen-fila">
-        <span class="resumen-etiqueta-fila">Músculos entrenados</span>
-        <span class="resumen-valor-fila" id="resumen-musculos">—</span>
-      </div>
-      <button type="button" id="cerrar-resumen" class="btn-principal">¡Genial!</button>
     </div>
   </div>
 
@@ -277,6 +185,18 @@
       <button type="button" id="cerrar-versiculo" class="btn-principal">Amén 🙏</button>
     </div>
   </div>
+
+  <!-- SESIÓN GUIADA DE ELITA (pantalla completa, se arma desde elita.js) -->
+  <div id="sesion" class="sesion" hidden>
+    <div id="sesion-contenido" class="sesion-contenido"></div>
+    <div id="sesion-barra" class="sesion-barra">
+      <div id="sesion-pie"></div>
+      <button type="button" id="btn-me-siento-mal" class="btn-grande btn-alerta">⚠️ Me siento mal</button>
+    </div>
+  </div>
+
+  <!-- DIÁLOGO PROPIO (en lugar de alert/confirm) -->
+  <div id="dialogo" class="dialogo-fondo" hidden></div>
 
   <script type="module" src="app.js?v=2"></script>
 </body>

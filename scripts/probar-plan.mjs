@@ -8,6 +8,7 @@ const raiz = join(dirname(fileURLToPath(import.meta.url)), "..");
 const cargar = (archivo) => import(pathToFileURL(join(raiz, archivo)).href + "?v=2");
 const P = await cargar("progreso-plan.js");
 const R = await cargar("plan-retina.js");
+const S = await cargar("sesion.js");
 
 let pasaron = 0;
 function prueba(nombre, fn) {
@@ -146,6 +147,46 @@ prueba("ningún ejercicio en el piso, acostada, con pesas o con la cabeza abajo"
     const limpio = texto.replace(/(talón|talones) en el piso/gi, "").replace(/levantá un pie apenas del piso/gi, "").replace(/sin pesas/gi, "");
     assert.ok(!prohibido.test(limpio), `${id}: ${limpio.match(prohibido)?.[0]}`);
   });
+});
+
+prueba("tramos: lados con cambio en el medio y descanso solo entre series", () => {
+  const [bl] = R.bloquesDeSesion(1).filter((b) => b.ej === "rodilla-sentada");
+  const tramos = S.tramosDeBloque(bl);
+  assert.deepEqual(tramos.map((t) => `${t.tipo}:${t.serie}:${t.lado ?? "-"}:${t.seg}`), [
+    "trabajo:1:0:25", "cambio:1:1:5", "trabajo:1:1:25", "descanso:1:-:30",
+    "trabajo:2:0:25", "cambio:2:1:5", "trabajo:2:1:25",
+  ]);
+  const total = tramos.reduce((s, t) => s + t.seg, 0);
+  assert.equal(total, R.duracionBloqueSeg(bl), "coincide con la duración estimada del plan");
+  const [caminar] = R.bloquesDeSesion(1).filter((b) => b.ej === "caminar");
+  assert.deepEqual(S.tramosDeBloque(caminar).map((t) => t.tipo), ["trabajo"]);
+});
+
+prueba("retomar sigue desde el próximo trabajo", () => {
+  const [bl] = R.bloquesDeSesion(1).filter((b) => b.ej === "rodilla-sentada");
+  const tramos = S.tramosDeBloque(bl);
+  assert.equal(S.puntoDeRetomar(tramos, 0), 0);
+  assert.equal(S.puntoDeRetomar(tramos, 1), 2, "después del cambio, el otro lado");
+  assert.equal(S.puntoDeRetomar(tramos, 3), 4, "después del descanso, la vez siguiente");
+  assert.equal(S.puntoDeRetomar(tramos, 99), 6);
+});
+
+prueba("textos: resumen, cambio de lado y reloj", () => {
+  const bls = Object.fromEntries(R.bloquesDeSesion(1).map((b) => [b.ej, b]));
+  assert.equal(S.textoResumen(bls["rodilla-sentada"]), "2 veces · 25 segundos (cada pierna)");
+  assert.equal(S.textoResumen(bls["caminar"]), "1 vez · 3 minutos");
+  assert.equal(S.textoResumen(bls["tobillos"]), "1 vez · 20 segundos (cada pie)");
+  assert.equal(S.textoResumen(bls["brazo-cruzado"]), "1 vez · 20 segundos (cada brazo)");
+  assert.equal(S.textoCambioDeLado(R.EJERCICIOS["rodilla-sentada"].lados), "AHORA LA OTRA PIERNA");
+  assert.equal(S.textoCambioDeLado(R.EJERCICIOS["brazo-cruzado"].lados), "AHORA EL OTRO BRAZO");
+  assert.equal(S.textoCambioDeLado(R.EJERCICIOS["un-pie"].lados), "AHORA EL OTRO PIE");
+  assert.equal(S.textoCambioDeLado(R.EJERCICIOS["pantorrilla-pared"].lados), "AHORA LA OTRA PIERNA");
+  // Todos los ejercicios con lados tienen una parte del cuerpo reconocida.
+  Object.entries(R.EJERCICIOS).filter(([, e]) => e.lados).forEach(([id, e]) => assert.ok(S.parteDelCuerpo(e.lados), id));
+  assert.equal(S.textoReloj(45), "45");
+  assert.equal(S.textoReloj(180), "3:00");
+  assert.equal(S.textoReloj(59.2), "1:00");
+  assert.equal(S.minutosRedondeados(20000), 1);
 });
 
 console.log(`\n${pasaron} pruebas OK.`);

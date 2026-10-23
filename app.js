@@ -7,6 +7,7 @@ import {
   aplicarParche,
   avanceTrasSesion,
 } from "./progreso-plan.js?v=2";
+import { configurarElita, mostrarInicio, renderInicio, estaEnSesion, quitarAjustes } from "./elita.js?v=2";
 
 // --- Sincronización en la nube (Firebase Firestore) ---
 // Todo esto corre en segundo plano sin bloquear el arranque de la app: si no
@@ -563,11 +564,6 @@ function cargarSemanasDe(perfilId) {
   return iniciales;
 }
 
-function guardarSemanas() {
-  localStorage.setItem(`mis-ejercicios-datos-${perfilActivo.id}`, JSON.stringify(semanas));
-  sincronizarANube();
-}
-
 function cargarSemanaActualDe(perfilId) {
   const n = Number(localStorage.getItem(`mis-ejercicios-semana-actual-${perfilId}`));
   return n >= 1 && n <= 4 ? n : 1;
@@ -625,105 +621,11 @@ if (plan) {
   guardarDocViejoLocal();
 }
 
-// --- Íconos y colores por ejercicio ---
-const ICONOS_POR_PALABRA = [
-  [/camin|marcha/i, "🚶"],
-  [/correr|trote|running/i, "🏃"],
-  [/yoga/i, "🧘"],
-  [/sentadilla|pierna|cuadríceps/i, "🏋️"],
-  [/puente|glúteo/i, "🏋️"],
-  [/pesa|fuerza|brazo|tríceps|triceps/i, "💪"],
-  [/bici|ciclismo/i, "🚴"],
-  [/nada|natación|piscina/i, "🏊"],
-  [/estira|flexibilidad|estiramiento/i, "🤸"],
-  [/equilibrio|balance/i, "🧘"],
-  [/respira/i, "🌬️"],
-  [/baile|bailar|zumba/i, "💃"],
-  [/cuello|hombro/i, "🙆"],
-  [/cadera|talon|pantorrilla|tobillo/i, "🦵"],
-  [/rodilla/i, "🦵"],
-  [/remo/i, "🚣"],
-];
-
-function iconoEjercicio(nombre) {
-  const encontrado = ICONOS_POR_PALABRA.find(([regex]) => regex.test(nombre));
-  return encontrado ? encontrado[1] : "💪";
-}
-
-const TILES = ["tile-teal", "tile-coral", "tile-oro"];
-
-function tileEjercicio(id) {
-  let suma = 0;
-  for (let i = 0; i < id.length; i++) suma += id.charCodeAt(i);
-  return TILES[suma % TILES.length];
-}
-
-const NOMBRES_CATEGORIA = {
-  calentamiento: "Calentamiento",
-  principal: "Ejercicios principales",
-  estiramiento: "Estiramiento final",
-};
-
-function agruparPorCategoria(lista) {
-  return ["calentamiento", "principal", "estiramiento"]
-    .map((cat) => ({
-      cat,
-      nombre: NOMBRES_CATEGORIA[cat],
-      items: lista.filter((ej) => (ej.categoria || "principal") === cat),
-    }))
-    .filter((g) => g.items.length > 0);
-}
-
-// --- Series individuales por ejercicio (ej. "2x8" -> Serie 1 y Serie 2 marcables por separado) ---
-function contarSeries(ej) {
-  const coincidencia = /^(\d+)\s*[x×]/i.exec(ej.detalle || "");
-  const n = coincidencia ? parseInt(coincidencia[1], 10) : 1;
-  return n > 1 ? n : 1;
-}
-
-function clavesSerie(ej) {
-  const n = contarSeries(ej);
-  if (n <= 1) return [ej.id];
-  return Array.from({ length: n }, (_, i) => `${ej.id}#${i + 1}`);
-}
-
-// --- Duración en segundos a partir del detalle (ej. "30 seg", "1 min" -> cronómetro por ejercicio) ---
-function extraerDuracionSegundos(detalle) {
-  const m = /(\d+)\s*(segundos|seg|minutos|min)\b/i.exec(detalle || "");
-  if (!m) return null;
-  const cantidad = parseInt(m[1], 10);
-  const esMinutos = m[2].toLowerCase().startsWith("min");
-  return esMinutos ? cantidad * 60 : cantidad;
-}
-
 function idBaseDeClave(clave) {
   return clave.split("#")[0];
 }
 
 // --- Anillos SVG ---
-function crearAnillo(porcentaje, radio, grosor, colorInicio, colorFin, idGrad) {
-  const centro = radio + grosor / 2 + 2;
-  const tam = centro * 2;
-  const circunferencia = 2 * Math.PI * radio;
-  const p = Math.max(0, Math.min(100, porcentaje));
-  const offset = circunferencia * (1 - p / 100);
-  return `
-    <svg viewBox="0 0 ${tam} ${tam}">
-      <defs>
-        <linearGradient id="${idGrad}" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="${colorInicio}"/>
-          <stop offset="100%" stop-color="${colorFin}"/>
-        </linearGradient>
-      </defs>
-      <circle cx="${centro}" cy="${centro}" r="${radio}" fill="none" stroke="#e7eeec" stroke-width="${grosor}"/>
-      <circle cx="${centro}" cy="${centro}" r="${radio}" fill="none" stroke="url(#${idGrad})"
-        stroke-width="${grosor}" stroke-linecap="round"
-        stroke-dasharray="${circunferencia}" stroke-dashoffset="${offset}"
-        transform="rotate(-90 ${centro} ${centro})"/>
-    </svg>
-  `;
-}
-
 function crearAnillosConcentricos(anillos) {
   const radioMax = 54;
   const grosor = 11;
@@ -746,10 +648,6 @@ function crearAnillosConcentricos(anillos) {
   });
   svg += `</svg>`;
   return svg;
-}
-
-function iniciales(nombre) {
-  return nombre.trim().charAt(0).toUpperCase() || "?";
 }
 
 function escapeHtml(texto) {
@@ -812,6 +710,7 @@ document.getElementById("form-clave").addEventListener("submit", (e) => {
 });
 
 document.getElementById("cerrar-sesion-elita").addEventListener("click", () => {
+  quitarAjustes();
   mostrarPantallaPerfil();
 });
 
@@ -832,148 +731,34 @@ function iniciarApp(id) {
   document.getElementById("app-juan").hidden = true;
   document.getElementById("app-contenido").hidden = false;
   document.getElementById("saludo-usuario").textContent = `Hola, ${perfilActivo.nombre} 👋`;
-  document.getElementById("avatar-header").textContent = iniciales(perfilActivo.nombre);
   document.getElementById("fecha-hoy").textContent = new Date().toLocaleDateString("es-ES", {
     weekday: "long",
     day: "numeric",
     month: "long",
   });
-  renderTodo();
+  mostrarInicio();
   mostrarVersiculoSiCorresponde();
 }
 
-// --- Navegación por pestañas (Elita) ---
-function irATab(nombreTab) {
-  document.querySelectorAll("#app-contenido .nav-btn").forEach((b) => b.classList.remove("active"));
-  document.querySelectorAll("#app-contenido .tab-panel").forEach((p) => p.classList.remove("active"));
-  document.querySelector(`#app-contenido .nav-btn[data-tab="${nombreTab}"]`).classList.add("active");
-  document.getElementById(`tab-${nombreTab}`).classList.add("active");
-  if (nombreTab === "progreso") renderProgreso();
-  if (nombreTab === "perfil") renderPerfil();
+function mostrarInicioElita() {
+  document.getElementById("tab-progreso").classList.remove("active");
+  document.getElementById("elita-inicio").classList.add("active");
 }
 
-document.querySelectorAll("#app-contenido .nav-btn").forEach((btn) => {
-  btn.addEventListener("click", () => irATab(btn.dataset.tab));
+function mostrarProgresoElita() {
+  document.getElementById("elita-inicio").classList.remove("active");
+  document.getElementById("tab-progreso").classList.add("active");
+  document.querySelector("#app-contenido .app-main").scrollTop = 0;
+  mesVisible = new Date();
+  renderProgreso();
+}
+
+document.getElementById("volver-inicio-elita").addEventListener("click", () => {
+  mostrarInicioElita();
+  renderInicio();
 });
 
-// --- Pestaña Hoy ---
-function renderHoy() {
-  const contenedor = document.getElementById("lista-hoy");
-  const mensajeVacio = document.getElementById("sin-ejercicios-msg");
-  const listaActual = semanas[semanaActual] || [];
-  contenedor.innerHTML = "";
-
-  document.getElementById("semana-actual-pill").textContent = `Semana ${semanaActual}`;
-
-  const clave = hoyISO();
-  const hechosHoy = registro[clave] || [];
-
-  if (listaActual.length === 0) {
-    mensajeVacio.hidden = false;
-  } else {
-    mensajeVacio.hidden = true;
-    const grupos = agruparPorCategoria(listaActual);
-    grupos.forEach((grupo) => {
-      if (grupos.length > 1) {
-        const titulo = document.createElement("p");
-        titulo.className = "categoria-titulo";
-        titulo.textContent = grupo.nombre;
-        contenedor.appendChild(titulo);
-      }
-      grupo.items.forEach((ej) => {
-        const claves = clavesSerie(ej);
-        const card = document.createElement("div");
-
-        if (claves.length > 1) {
-          const todasHechas = claves.every((clave) => hechosHoy.includes(clave));
-          card.className = "ejercicio-card multi-serie" + (todasHechas ? " hecho" : "");
-          const botonesSeries = claves
-            .map((clave, i) => {
-              const hecha = hechosHoy.includes(clave);
-              return `<button type="button" class="serie-btn${hecha ? " hecha" : ""}" data-clave="${clave}">${hecha ? "✓ " : ""}Serie ${i + 1}</button>`;
-            })
-            .join("");
-          const duracionEj = extraerDuracionSegundos(ej.detalle);
-          card.innerHTML = `
-            <span class="ejercicio-icono ${tileEjercicio(ej.id)}">${iconoEjercicio(ej.nombre)}</span>
-            <div class="ejercicio-info">
-              <span class="ejercicio-nombre">${escapeHtml(ej.nombre)}</span>
-              <span class="ejercicio-detalle">${escapeHtml(ej.detalle)}</span>
-              <div class="acciones-ejercicio">
-                ${ej.video ? `<button type="button" class="ver-video-btn" data-video="${escapeHtml(ej.video)}" data-nombre="${escapeHtml(ej.nombre)}">🎥 Ver guía</button>` : ""}
-                ${duracionEj ? `<button type="button" class="cronometrar-btn" data-segundos="${duracionEj}" data-nombre="${escapeHtml(ej.nombre)}">⏱️ Cronometrar</button>` : ""}
-              </div>
-              <div class="series-fila">${botonesSeries}</div>
-            </div>
-          `;
-          card.querySelectorAll(".serie-btn").forEach((btn) => {
-            btn.addEventListener("click", () => {
-              const marcada = toggleCompletado(btn.dataset.clave);
-              if (marcada) iniciarTemporizador(30);
-            });
-          });
-        } else {
-          const hecho = hechosHoy.includes(ej.id);
-          const duracionEj = extraerDuracionSegundos(ej.detalle);
-          card.className = "ejercicio-card" + (hecho ? " hecho" : "");
-          card.innerHTML = `
-            <span class="ejercicio-icono ${tileEjercicio(ej.id)}">${iconoEjercicio(ej.nombre)}</span>
-            <div class="ejercicio-info">
-              <span class="ejercicio-nombre">${escapeHtml(ej.nombre)}</span>
-              <span class="ejercicio-detalle">${escapeHtml(ej.detalle)}</span>
-              <div class="acciones-ejercicio">
-                ${ej.video ? `<button type="button" class="ver-video-btn" data-video="${escapeHtml(ej.video)}" data-nombre="${escapeHtml(ej.nombre)}">🎥 Ver guía</button>` : ""}
-                ${duracionEj ? `<button type="button" class="cronometrar-btn" data-segundos="${duracionEj}" data-nombre="${escapeHtml(ej.nombre)}">⏱️ Cronometrar</button>` : ""}
-              </div>
-            </div>
-            <button class="check-btn" aria-label="Marcar completado">✓</button>
-          `;
-          card.querySelector(".check-btn").addEventListener("click", () => {
-            const marcada = toggleCompletado(ej.id);
-            if (marcada) iniciarTemporizador(30);
-          });
-        }
-        card.querySelectorAll(".ver-video-btn").forEach((btn) => {
-          btn.addEventListener("click", (e) => {
-            e.stopPropagation();
-            abrirVideo(btn.dataset.video, btn.dataset.nombre);
-          });
-        });
-        card.querySelectorAll(".cronometrar-btn").forEach((btn) => {
-          btn.addEventListener("click", (e) => {
-            e.stopPropagation();
-            iniciarTemporizador(Number(btn.dataset.segundos), btn.dataset.nombre, "¡Listo! 💪");
-          });
-        });
-        contenedor.appendChild(card);
-      });
-    });
-  }
-
-  const total = listaActual.length;
-  const hechos = listaActual.filter((ej) => clavesSerie(ej).every((clave) => hechosHoy.includes(clave))).length;
-  const porcentaje = total > 0 ? Math.round((hechos / total) * 100) : 0;
-
-  document.getElementById("anillo-hoy-wrap").innerHTML =
-    crearAnillo(porcentaje, 46, 12, "#2f9e8f", "#1f6f63", "gradAnilloHoy") +
-    `<div class="anillo-porcentaje">${porcentaje}%</div>`;
-  document.getElementById("anillo-hoy-detalle").textContent = `${hechos} de ${total} ejercicios`;
-
-  actualizarCronometroUI();
-  renderGraficoSemana("semana-grafico");
-}
-
-const META_DIAS_SEMANA = 5;
-
-function diaCompletoParaLista(lista, hechosEseDia) {
-  return lista.length > 0 && lista.every((ej) => clavesSerie(ej).every((clave) => hechosEseDia.includes(clave)));
-}
-
-function contarDiasCompletosSemana(lista) {
-  return Object.values(registro).filter((idsDelDia) => diaCompletoParaLista(lista, idsDelDia)).length;
-}
-
-// --- Cronómetro de entrenamiento (desde el primer ejercicio marcado hasta completar el día) ---
+// --- Cronómetro del día (formato del doc viejo, lo usan el historial y los gráficos) ---
 function formatoDuracion(ms) {
   const totalSeg = Math.max(0, Math.floor(ms / 1000));
   const min = Math.floor(totalSeg / 60);
@@ -981,26 +766,9 @@ function formatoDuracion(ms) {
   return `${String(min).padStart(2, "0")}:${String(seg).padStart(2, "0")}`;
 }
 
-const INACTIVIDAD_CRONOMETRO_MS = 3 * 60 * 1000;
-
-function primerEjercicioCalentamiento(lista) {
-  return lista.find((ej) => (ej.categoria || "principal") === "calentamiento") || lista[0];
-}
-
-function ultimoEjercicioEstiramiento(lista) {
-  const estiramientos = lista.filter((ej) => (ej.categoria || "principal") === "estiramiento");
-  return estiramientos.length > 0 ? estiramientos[estiramientos.length - 1] : lista[lista.length - 1];
-}
-
 // El cronómetro guarda el tiempo ya acumulado (acumuladoMs) más, mientras está
-// corriendo, el inicio del tramo actual (segmentoInicio). Al pausarse por
-// inactividad, ese tramo se suma a acumuladoMs y segmentoInicio queda en null;
-// al reanudar (marcar otro ejercicio) se abre un tramo nuevo, sin contar el
-// tiempo que estuvo pausado.
-function crearCronometroInicial(ahora) {
-  return { acumuladoMs: 0, segmentoInicio: ahora, ultimaActividad: ahora, fin: null };
-}
-
+// corriendo, el inicio del tramo actual (segmentoInicio). Las sesiones del plan
+// nuevo se guardan ya cerradas: { acumuladoMs, segmentoInicio: null, fin }.
 function normalizarCronometro(estado) {
   if (estado.segmentoInicio !== undefined) return estado;
   // Formato anterior: { inicio, ultimaActividad, fin }.
@@ -1013,137 +781,6 @@ function normalizarCronometro(estado) {
 function duracionActual(estado, ahora = Date.now()) {
   const enCurso = estado.segmentoInicio ? ahora - estado.segmentoInicio : 0;
   return estado.acumuladoMs + enCurso;
-}
-
-function verificarCronometroHoy(hechosHoy) {
-  const hoy = hoyISO();
-  const listaActual = semanas[semanaActual] || [];
-  if (listaActual.length === 0) return;
-
-  const primerEj = primerEjercicioCalentamiento(listaActual);
-  const ultimoEj = ultimoEjercicioEstiramiento(listaActual);
-  const primerEmpezado = primerEj && clavesSerie(primerEj).some((k) => hechosHoy.includes(k));
-  const ultimoCompleto = ultimoEj && clavesSerie(ultimoEj).every((k) => hechosHoy.includes(k));
-
-  const ahora = Date.now();
-  let cambio = false;
-
-  if (primerEmpezado && !cronometros[hoy]) {
-    cronometros[hoy] = crearCronometroInicial(ahora);
-    cambio = true;
-  } else if (cronometros[hoy]) {
-    cronometros[hoy] = normalizarCronometro(cronometros[hoy]);
-    const estado = cronometros[hoy];
-    if (!estado.fin) {
-      if (!estado.segmentoInicio) estado.segmentoInicio = ahora; // reanudar tras una pausa
-      estado.ultimaActividad = ahora;
-      cambio = true;
-    }
-  }
-
-  if (cronometros[hoy] && ultimoCompleto && !cronometros[hoy].fin) {
-    const estado = cronometros[hoy];
-    estado.acumuladoMs = duracionActual(estado, ahora);
-    estado.segmentoInicio = null;
-    estado.fin = ahora;
-    cambio = true;
-    mostrarResumenEntrenamiento(listaActual, hechosHoy, estado);
-  }
-  if (cambio) guardarCronometros(cronometros);
-}
-
-function mostrarResumenEntrenamiento(listaActual, hechosHoy, estadoCronometro) {
-  const duracion = formatoDuracion(duracionActual(estadoCronometro));
-  const musculos = [
-    ...new Set(
-      listaActual
-        .filter((ej) => (ej.categoria || "principal") === "principal" && ej.musculo)
-        .filter((ej) => clavesSerie(ej).every((k) => hechosHoy.includes(k)))
-        .map((ej) => ej.musculo)
-    ),
-  ];
-  document.getElementById("resumen-tiempo").textContent = duracion;
-  document.getElementById("resumen-musculos").textContent = musculos.length > 0 ? musculos.join(", ") : "—";
-  document.getElementById("resumen-overlay").hidden = false;
-  sonarFanfarria();
-}
-
-let cronometroEntrenamientoIntervalo = null;
-
-function actualizarCronometroUI() {
-  const tarjeta = document.getElementById("tarjeta-cronometro");
-  const valor = document.getElementById("cronometro-valor");
-  const titulo = document.getElementById("cronometro-titulo");
-  const hoy = hoyISO();
-
-  if (!cronometros[hoy]) {
-    tarjeta.hidden = true;
-    if (cronometroEntrenamientoIntervalo) {
-      clearInterval(cronometroEntrenamientoIntervalo);
-      cronometroEntrenamientoIntervalo = null;
-    }
-    return;
-  }
-
-  cronometros[hoy] = normalizarCronometro(cronometros[hoy]);
-  const estado = cronometros[hoy];
-
-  if (!estado.fin && estado.segmentoInicio && Date.now() - estado.ultimaActividad >= INACTIVIDAD_CRONOMETRO_MS) {
-    // Auto-pausar: se acredita el tiempo hasta el corte de inactividad, no hasta ahora.
-    const corte = estado.ultimaActividad + INACTIVIDAD_CRONOMETRO_MS;
-    estado.acumuladoMs += corte - estado.segmentoInicio;
-    estado.segmentoInicio = null;
-    guardarCronometros(cronometros);
-  }
-
-  tarjeta.hidden = false;
-  valor.textContent = formatoDuracion(duracionActual(estado));
-
-  const listaActual = semanas[semanaActual] || [];
-  const hechosHoy = registro[hoy] || [];
-  const completoHoy = diaCompletoParaLista(listaActual, hechosHoy);
-
-  if (estado.fin) {
-    titulo.textContent = completoHoy ? "¡Rutina completada en!" : "Entrenamiento pausado";
-    if (cronometroEntrenamientoIntervalo) {
-      clearInterval(cronometroEntrenamientoIntervalo);
-      cronometroEntrenamientoIntervalo = null;
-    }
-  } else if (!estado.segmentoInicio) {
-    titulo.textContent = "Entrenamiento pausado";
-    if (cronometroEntrenamientoIntervalo) {
-      clearInterval(cronometroEntrenamientoIntervalo);
-      cronometroEntrenamientoIntervalo = null;
-    }
-  } else {
-    titulo.textContent = "Tiempo de entrenamiento";
-    if (!cronometroEntrenamientoIntervalo) {
-      cronometroEntrenamientoIntervalo = setInterval(actualizarCronometroUI, 1000);
-    }
-  }
-}
-
-function toggleCompletado(id) {
-  const clave = hoyISO();
-  const hechosHoy = registro[clave] || [];
-  const index = hechosHoy.indexOf(id);
-  let marcada;
-  if (index >= 0) {
-    hechosHoy.splice(index, 1);
-    marcada = false;
-  } else {
-    hechosHoy.push(id);
-    marcada = true;
-  }
-  if (hechosHoy.length > 0) {
-    registro[clave] = hechosHoy;
-  } else {
-    delete registro[clave];
-  }
-  guardarRegistro(registro);
-  verificarCronometroHoy(hechosHoy);
-  renderTodo();
-  return marcada;
 }
 
 function diaCompletado(fechaISO) {
@@ -1182,38 +819,6 @@ function calcularMejorRacha() {
     mejor = Math.max(mejor, actual);
   }
   return mejor;
-}
-
-function renderGraficoSemana(contenedorId) {
-  const grafico = document.getElementById(contenedorId);
-  grafico.innerHTML = "";
-  const letras = ["D", "L", "M", "M", "J", "V", "S"];
-
-  const dias = [];
-  for (let i = 6; i >= 0; i--) {
-    const fecha = new Date();
-    fecha.setDate(fecha.getDate() - i);
-    const iso = new Date(fecha.getTime() - fecha.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-    const cronDia = cronometros[iso];
-    const duracionMs = cronDia ? duracionActual(normalizarCronometro(cronDia)) : 0;
-    dias.push({ fecha, iso, duracionMs, activo: diaCompletado(iso) });
-  }
-
-  const maxDuracion = Math.max(...dias.map((d) => d.duracionMs), 1);
-
-  dias.forEach(({ fecha, duracionMs, activo }) => {
-    const alturaPct = duracionMs > 0 ? Math.max(15, Math.round((duracionMs / maxDuracion) * 100)) : activo ? 100 : 10;
-    const duracionTexto = duracionMs > 0 ? formatoDuracion(duracionMs) : "";
-
-    const wrap = document.createElement("div");
-    wrap.className = "dia-barra-wrap";
-    wrap.innerHTML = `
-      <span class="dia-duracion">${duracionTexto}</span>
-      <div class="dia-barra ${activo ? "activo" : ""}" style="height:${alturaPct}%"></div>
-      <span class="dia-letra">${letras[fecha.getDay()]}</span>
-    `;
-    grafico.appendChild(wrap);
-  });
 }
 
 // --- Resumen / calendario (reutilizado por Elita y por la vista de Juan Manolo) ---
@@ -1309,109 +914,12 @@ document.getElementById("mes-siguiente").addEventListener("click", () => {
   renderCalendarioEn("calendario", "mes-actual");
 });
 
-// --- Pestaña Semanas ---
-function renderSemanas() {
-  const contenedor = document.getElementById("lista-semanas");
-  const abiertasAntes = new Set(
-    Array.from(contenedor.querySelectorAll(".semana-acordeon[open]")).map((d) => d.dataset.semana)
-  );
-  contenedor.innerHTML = "";
-
-  for (let n = 1; n <= 4; n++) {
-    const lista = semanas[n] || [];
-
-    if (n > semanaActual) {
-      const bloqueada = document.createElement("div");
-      bloqueada.className = "semana-bloqueada";
-      bloqueada.innerHTML = `
-        <div class="semana-bloqueada-fila">
-          <span>Semana ${n}</span>
-          <span aria-hidden="true">🔒</span>
-        </div>
-        <p class="semana-bloqueada-ayuda">Completá la Semana ${n - 1} durante ${META_DIAS_SEMANA} días para desbloquearla.</p>
-      `;
-      contenedor.appendChild(bloqueada);
-      continue;
-    }
-
-    const diasCompletos = contarDiasCompletosSemana(lista);
-
-    const detalle = document.createElement("details");
-    detalle.className = "semana-acordeon";
-    detalle.dataset.semana = String(n);
-    detalle.open = abiertasAntes.size > 0 ? abiertasAntes.has(String(n)) : n === semanaActual;
-
-    detalle.innerHTML = `
-      <summary class="semana-resumen">
-        <span class="semana-nombre">Semana ${n}${n === semanaActual ? '<span class="semana-badge">Actual</span>' : ""}</span>
-        <span class="semana-progreso">${diasCompletos}/${META_DIAS_SEMANA} días</span>
-      </summary>
-      <div class="semana-cuerpo"></div>
-    `;
-
-    const cuerpo = detalle.querySelector(".semana-cuerpo");
-    if (lista.length === 0) {
-      cuerpo.innerHTML = '<p class="msg-vacio">Todavía no hay ejercicios en esta semana.</p>';
-    } else {
-      const grupos = agruparPorCategoria(lista);
-      grupos.forEach((grupo) => {
-        if (grupos.length > 1) {
-          const titulo = document.createElement("p");
-          titulo.className = "categoria-titulo";
-          titulo.textContent = grupo.nombre;
-          cuerpo.appendChild(titulo);
-        }
-        grupo.items.forEach((ej) => {
-          const card = document.createElement("div");
-          card.className = "gestion-card";
-          card.innerHTML = `
-            <span class="ejercicio-icono ${tileEjercicio(ej.id)}">${iconoEjercicio(ej.nombre)}</span>
-            <div class="ejercicio-info">
-              <span class="ejercicio-nombre">${escapeHtml(ej.nombre)}</span>
-              <span class="ejercicio-detalle">${escapeHtml(ej.detalle)}</span>
-              ${ej.video ? `<button type="button" class="ver-video-btn" data-video="${escapeHtml(ej.video)}" data-nombre="${escapeHtml(ej.nombre)}">🎥 Ver guía</button>` : ""}
-            </div>
-            <button class="eliminar-btn" aria-label="Eliminar ${escapeHtml(ej.nombre)}">🗑</button>
-          `;
-          const botonVideo = card.querySelector(".ver-video-btn");
-          if (botonVideo) {
-            botonVideo.addEventListener("click", () => abrirVideo(botonVideo.dataset.video, botonVideo.dataset.nombre));
-          }
-          card.querySelector(".eliminar-btn").addEventListener("click", () => {
-            if (confirm(`¿Eliminar "${ej.nombre}"?`)) {
-              semanas[n] = semanas[n].filter((e) => e.id !== ej.id);
-              guardarSemanas();
-              renderTodo();
-            }
-          });
-          cuerpo.appendChild(card);
-        });
-      });
-    }
-
-    contenedor.appendChild(detalle);
-  }
-}
-
-// --- Pestaña Perfil (Elita) ---
-function renderPerfil() {
-  document.getElementById("avatar-grande").textContent = iniciales(perfilActivo.nombre);
-  document.getElementById("perfil-resumen-nombre").textContent = perfilActivo.nombre;
-  document.getElementById("perfil-racha").textContent = calcularRachaActual();
-  document.getElementById("perfil-dias").textContent = Object.keys(registro).filter(
-    (f) => registro[f].length > 0
-  ).length;
-}
-
+// Cuando llegan cambios de la nube (por ejemplo, Juan cambió de semana). Durante una
+// sesión no se toca nada: la pantalla de la sesión manda.
 function renderTodo() {
-  renderHoy();
-  renderSemanas();
-  if (document.getElementById("tab-progreso").classList.contains("active")) {
-    renderProgreso();
-  }
-  if (document.getElementById("tab-perfil").classList.contains("active")) {
-    renderPerfil();
-  }
+  if (estaEnSesion()) return;
+  if (document.getElementById("tab-progreso").classList.contains("active")) renderProgreso();
+  else renderInicio();
 }
 
 // --- App de Juan Manolo (solo lectura del progreso de Elita) ---
@@ -1482,7 +990,11 @@ function renderHistorial() {
   const vacio = document.getElementById("jn-historial-vacio");
   contenedor.innerHTML = "";
 
-  const nombresPorId = new Map(todosLosEjercicios().map((ej) => [ej.id, ej.nombre]));
+  // Los ejercicios de la rutina anterior se muestran con su nombre de antes.
+  const nombresPorId = new Map([
+    ...Object.entries(plan.nombresAnteriores),
+    ...todosLosEjercicios().map((ej) => [ej.id, ej.nombre]),
+  ]);
   const dias = Object.keys(registro)
     .filter((f) => registro[f].length > 0)
     .sort()
@@ -1530,92 +1042,6 @@ function renderHistorial() {
   });
 }
 
-// --- Temporizador de descanso ---
-let temporizadorIntervalo = null;
-
-function actualizarTemporizadorUI(restante, total) {
-  const porcentaje = (restante / total) * 100;
-  document.getElementById("temporizador-anillo-wrap").innerHTML =
-    crearAnillo(porcentaje, 76, 14, "#ef8a5f", "#c0463c", "gradTemporizador") +
-    `<div class="anillo-porcentaje">${restante}</div>`;
-}
-
-function reproducirTono(ctx, frecuencia, inicio, duracion, tipo, volumen) {
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-  osc.type = tipo;
-  osc.frequency.value = frecuencia;
-  gain.gain.setValueAtTime(volumen, ctx.currentTime + inicio);
-  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + inicio + duracion);
-  osc.connect(gain);
-  gain.connect(ctx.destination);
-  osc.start(ctx.currentTime + inicio);
-  osc.stop(ctx.currentTime + inicio + duracion);
-}
-
-// Campanita de dos notas (sol5 -> do6), usada al terminar un descanso o el cronómetro de un ejercicio.
-function sonarAlarma() {
-  try {
-    const Ctx = window.AudioContext || window.webkitAudioContext;
-    const ctx = new Ctx();
-    reproducirTono(ctx, 784.0, 0, 0.3, "sine", 0.28);
-    reproducirTono(ctx, 1046.5, 0.2, 0.45, "sine", 0.28);
-  } catch (e) {}
-  if (navigator.vibrate) {
-    try { navigator.vibrate([200, 100, 200]); } catch (e) {}
-  }
-}
-
-// Fanfarria ascendente (do5-mi5-sol5-do6), usada al completar toda la rutina del día.
-function sonarFanfarria() {
-  try {
-    const Ctx = window.AudioContext || window.webkitAudioContext;
-    const ctx = new Ctx();
-    [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
-      reproducirTono(ctx, freq, i * 0.14, 0.35, "triangle", 0.22);
-    });
-  } catch (e) {}
-  if (navigator.vibrate) {
-    try { navigator.vibrate([150, 60, 150, 60, 250]); } catch (e) {}
-  }
-}
-
-function detenerTemporizador() {
-  if (temporizadorIntervalo) {
-    clearInterval(temporizadorIntervalo);
-    temporizadorIntervalo = null;
-  }
-}
-
-function cerrarTemporizador() {
-  detenerTemporizador();
-  document.getElementById("temporizador-overlay").hidden = true;
-}
-
-function iniciarTemporizador(segundosTotal, titulo = "Descanso", tituloFin = "¡Descanso terminado! 💪") {
-  detenerTemporizador();
-  let restante = segundosTotal;
-  document.getElementById("temporizador-titulo").textContent = titulo;
-  actualizarTemporizadorUI(restante, segundosTotal);
-  document.getElementById("temporizador-overlay").hidden = false;
-
-  temporizadorIntervalo = setInterval(() => {
-    restante--;
-    if (restante <= 0) {
-      detenerTemporizador();
-      actualizarTemporizadorUI(0, segundosTotal);
-      document.getElementById("temporizador-titulo").textContent = tituloFin;
-      sonarAlarma();
-    } else {
-      actualizarTemporizadorUI(restante, segundosTotal);
-    }
-  }, 1000);
-}
-
-document.getElementById("cerrar-temporizador").addEventListener("click", () => {
-  cerrarTemporizador();
-});
-
 // --- Video guía ---
 function abrirVideo(ruta, nombre) {
   const video = document.getElementById("video-guia");
@@ -1633,11 +1059,6 @@ function cerrarVideo() {
 }
 
 document.getElementById("cerrar-video").addEventListener("click", cerrarVideo);
-
-// --- Resumen de fin de entrenamiento ---
-document.getElementById("cerrar-resumen").addEventListener("click", () => {
-  document.getElementById("resumen-overlay").hidden = true;
-});
 
 // --- Versículo del día ---
 document.getElementById("cerrar-versiculo").addEventListener("click", () => {
@@ -1665,6 +1086,17 @@ if (MODO_PRUEBA) {
     actualizarPlan,
   };
 }
+
+configurarElita({
+  obtenerPlan: () => plan,
+  actualizarPlan,
+  guardarSesion,
+  hoyISO,
+  mostrarInicioElita,
+  mostrarProgreso: mostrarProgresoElita,
+  abrirVideo,
+  modoPrueba: MODO_PRUEBA,
+});
 
 // --- Inicio ---
 // Siempre se pide la clave al entrar o recargar la página; el progreso
