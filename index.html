@@ -166,12 +166,17 @@
     </nav>
   </div>
 
-  <!-- VIDEO GUÍA -->
-  <div id="video-overlay" class="temporizador-overlay video-overlay" hidden>
-    <div class="temporizador-tarjeta video-tarjeta">
-      <p id="video-titulo" class="temporizador-titulo">Guía</p>
-      <video id="video-guia" class="video-guia" controls playsinline></video>
-      <button type="button" id="cerrar-video" class="btn-secundario">Cerrar</button>
+  <!-- VIDEO DEL EJERCICIO (pantalla completa, se arma desde videos.js) -->
+  <div id="video-overlay" class="video-overlay" role="dialog" aria-modal="true" aria-labelledby="video-titulo" hidden>
+    <div class="video-cuerpo">
+      <button type="button" class="btn-grande btn-blanco cerrar-video">✕ CERRAR VIDEO</button>
+      <p id="video-titulo" class="video-titulo"></p>
+      <p id="video-cartel" class="video-cartel" hidden></p>
+      <p id="video-nota" class="video-nota" hidden></p>
+      <div id="video-marco" class="video-marco"></div>
+      <p id="video-fuente" class="video-fuente" hidden></p>
+      <div id="video-fallo" class="video-fallo" hidden></div>
+      <button type="button" class="btn-grande btn-blanco cerrar-video">✕ CERRAR VIDEO</button>
     </div>
   </div>
 

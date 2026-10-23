@@ -375,20 +375,6 @@ h2 {
   font-size: 2.6em;
 }
 
-.video-tarjeta {
-  max-width: 380px;
-  padding: 24px 20px;
-}
-
-.video-guia {
-  width: 100%;
-  max-height: 60vh;
-  border-radius: 16px;
-  background: #000;
-  margin-bottom: 18px;
-  display: block;
-}
-
 .acciones-ejercicio {
   display: flex;
   flex-wrap: wrap;
@@ -1456,4 +1442,104 @@ h2 {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* --- Botón de video la primera vez: late suave --- */
+@keyframes latido {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(22, 92, 79, 0.35); }
+  50% { transform: scale(1.03); box-shadow: 0 0 0 10px rgba(22, 92, 79, 0); }
+}
+
+.latido { animation: latido 1.6s ease-in-out infinite; }
+
+/* --- Dibujo de los pies --- */
+.diagrama-pies {
+  margin: 0 0 16px;
+  padding: 12px;
+  border: 2px solid #d9d4c7;
+  border-radius: 16px;
+  background: #fff;
+  text-align: center;
+}
+
+.diagrama-pies svg { display: block; width: 100%; max-width: 300px; margin: 0 auto; }
+.diagrama-pies figcaption { margin-top: 8px; color: var(--texto); font-weight: 700; }
+
+/* --- Respiración: círculo que crece y se achica --- */
+.respiracion-texto { margin: 6px 0 0; font-size: 1.4em; font-weight: 900; min-height: 1.4em; }
+
+.respiracion-zona {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 230px;
+  margin: 4px 0 12px;
+}
+
+.respiracion-circulo {
+  position: absolute;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  background: #cfe7df;
+  border: 4px solid var(--accion);
+  transform: scale(0.55);
+  transition-property: transform;
+  transition-timing-function: ease-in-out;
+}
+
+.respiracion-circulo[data-fase="inhalar"] { transform: scale(1); }
+.respiracion-circulo[data-fase="exhalar"] { transform: scale(0.55); }
+.respiracion-zona .reloj-numero { position: relative; margin: 0; }
+
+/* --- Video a pantalla completa --- */
+.video-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background: #111416;
+  color: #fff;
+  font-size: 22px;
+  line-height: 1.4;
+}
+
+.letra-muy-grande .video-overlay { font-size: 26px; }
+
+.video-cuerpo {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+}
+
+.video-titulo { margin: 4px 0 12px; font-size: 1.4em; font-weight: 900; }
+
+.video-cartel,
+.video-nota {
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--aviso);
+  color: var(--texto);
+  font-weight: 800;
+}
+
+.video-marco { margin: 0 0 8px; }
+.video-marco .video-guia { display: block; width: 100%; max-height: 70vh; border-radius: 12px; background: #000; }
+.video-youtube { position: relative; width: 100%; aspect-ratio: 16 / 9; }
+.video-youtube iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; border-radius: 12px; }
+.video-cargando { margin: 0 0 8px; font-weight: 700; }
+.video-fuente { margin: 0 0 16px; font-size: 18px; color: #e6e6e6; }
+
+.video-fallo { margin: 8px 0 16px; }
+.video-fallo-titulo { margin: 0 0 12px; font-size: 1.1em; font-weight: 900; }
+.video-pasos { margin: 0 0 8px; padding-left: 1.4em; }
+.video-pasos li { margin-bottom: 8px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .latido { animation: none; outline: 4px solid #f2b600; outline-offset: 3px; }
+  .respiracion-circulo { transition: none; }
+  .respiracion-circulo[data-fase="inhalar"] { background: #9fd3c3; }
 }

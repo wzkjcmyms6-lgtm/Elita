@@ -16,6 +16,8 @@ import {
 } from "./sesion.js?v=2";
 import { hablar, callar, configurarVoz, desbloquearAudio, sonarAlarma, sonarFanfarria, sonarTic, sonarYa } from "./voz.js?v=2";
 import { mostrarDialogo, confirmar } from "./dialogo.js?v=2";
+import { abrirVideos, videosDelEjercicio } from "./videos.js?v=2";
+import { diagramaPies } from "./dibujos.js?v=2";
 
 // Lo que viene de app.js: { obtenerPlan, actualizarPlan, guardarSesion, hoyISO, mostrarProgreso, modoPrueba }
 let dep = null;
@@ -394,20 +396,35 @@ function pantallaPresentacion() {
   const ej = bl.ejercicio;
   const tramos = tramosDeBloque(bl);
   const retomar = sesion.tramo > 0 ? tramos[puntoDeRetomar(tramos, sesion.tramo)] : null;
-  const videoLocal = (ej.videos || []).find((v) => v.tipo === "local");
+  const ajustes = plan().ajustes;
+  const videos = videosDelEjercicio(ej, ajustes.videosPropios[bl.ej]);
+  const primeraVez = !ajustes.videosVistos[bl.ej];
+  const botonVideo = videos.length === 0 ? "" : primeraVez
+    ? `<button type="button" id="ver-video" class="btn-grande btn-secundario-grande latido">▶ Mirá cómo se hace (es la primera vez)</button>`
+    : `<button type="button" id="ver-video" class="btn-grande btn-secundario-grande">▶ VER CÓMO SE HACE</button>`;
   mostrarEnSesion(`
     <p class="sesion-paso">Ejercicio ${sesion.bloque + 1} de ${bloques.length} · ${FASES[bl.fase]}</p>
     <h1 class="ej-titulo"><span aria-hidden="true">${ej.icono}</span> ${esc(ej.corto)}</h1>
     <p class="chip-posicion">${POSICIONES[ej.posicion] || ""}</p>
+    ${ej.diagrama ? diagramaPies(ej.diagrama) : ""}
     <ol class="ej-pasos">${ej.pasos.map((paso) => `<li>${esc(paso)}</li>`).join("")}</ol>
     <div class="recuadro-cuidado">⚠️ ${esc(ej.cuidado)}</div>
     ${ej.tipo === "fuerza" ? `<p class="recordatorio-aire">🌬️ Soltá el aire al hacer fuerza, nunca lo aguantes.</p>` : ""}
     <p class="ej-resumen">${esc(textoResumen(bl))}</p>
     ${retomar ? `<div class="recuadro-aviso">Seguimos donde quedaste: vez ${retomar.serie} de ${bl.series}${retomar.lado !== null ? `, ${esc(bl.lados[retomar.lado].toLowerCase())}` : ""}.</div>` : ""}
-    ${videoLocal ? `<button type="button" id="ver-video" class="btn-grande btn-secundario-grande">▶ VER CÓMO SE HACE</button>` : ""}
+    ${botonVideo}
     <button type="button" id="btn-saltar-ej" class="btn-link">Saltar este ejercicio</button>
   `, { pie: `<button type="button" id="btn-empezar-ej" class="btn-grande btn-accion">▶ EMPEZAR</button>` });
-  alClic("ver-video", () => dep.abrirVideo(videoLocal.src, ej.corto));
+  alClic("ver-video", () => {
+    pausarSiCorre(); // el temporizador no corre mientras se ve el video
+    if (primeraVez) dep.actualizarPlan({ ajustes: { videosVistos: { [bl.ej]: hoy() } } });
+    abrirVideos({
+      titulo: ej.corto,
+      lista: videos,
+      pasos: ej.pasos,
+      alCerrar: () => { if (sesion && !reloj && bloques[sesion.bloque] === bl) pantallaPresentacion(); },
+    });
+  });
   alClic("btn-empezar-ej", empezarBloque);
   alClic("btn-saltar-ej", async () => {
     if (!(await confirmar("¿Saltamos este ejercicio?", "No pasa nada, seguimos con el próximo.", "SÍ, SALTAR", "NO, LO HAGO"))) return;
@@ -509,6 +526,7 @@ const NUMEROS = ["uno", "dos", "tres"];
 function actualizarNumero(ahora) {
   const paso = reloj.pasos[reloj.k];
   const restanteMs = Math.max(0, reloj.fin - ahora);
+  actualizarRespiracion(paso, restanteMs);
   // Se muestran segundos "reales" del plan aunque en modo prueba el tiempo corra más rápido.
   const seg = Math.ceil(restanteMs / (1000 * factor));
   if (seg === reloj.ultimoSeg) return;
@@ -521,11 +539,31 @@ function actualizarNumero(ahora) {
     if (seg >= 1 && seg <= 3 && paso.t.seg > 5) {
       sonarTic();
       hablar(NUMEROS[seg - 1]);
-    } else if (!reloj.mitadDicha && paso.t.seg >= 20 && restanteMs <= paso.ms / 2) {
+    } else if (!reloj.mitadDicha && !reloj.bl.ejercicio.guiaRespiracion && paso.t.seg >= 20 && restanteMs <= paso.ms / 2) {
       reloj.mitadDicha = true;
       hablar(reloj.bl.ejercicio.vozMitad || "Vas por la mitad");
     }
   }
+}
+
+// Respiración: el círculo crece al tomar aire (3 s) y se achica al soltarlo (5 s).
+function actualizarRespiracion(paso, restanteMs) {
+  const guia = reloj.bl.ejercicio.guiaRespiracion;
+  const circulo = $("respiracion-circulo");
+  if (!guia || paso.tipo !== "trabajo" || !circulo) return;
+  const inhalarMs = guia.inhalar * 1000 * factor;
+  const cicloMs = (guia.inhalar + guia.exhalar) * 1000 * factor;
+  const enCiclo = (paso.ms - restanteMs) % cicloMs;
+  const inhalando = enCiclo < inhalarMs;
+  const fase = inhalando ? "inhalar" : "exhalar";
+  if (circulo.dataset.fase === fase) return;
+  const quedaEnFase = inhalando ? inhalarMs - enCiclo : cicloMs - enCiclo;
+  if (!circulo.dataset.fase) void circulo.offsetWidth; // recién dibujado: que la transición arranque desde chico
+  circulo.style.transitionDuration = `${Math.round(quedaEnFase)}ms`;
+  circulo.dataset.fase = fase;
+  $("respiracion-texto").textContent = inhalando ? "Tomá aire…" : "Soltá el aire…";
+  // Al final se cuenta "tres, dos, uno": ahí no se pisa con la guía.
+  if (restanteMs > 4000 * factor) hablar(inhalando ? "Tomá aire" : "Soltá el aire, despacito");
 }
 
 function terminarBloque() {
@@ -559,7 +597,21 @@ function pantallaPaso(paso) {
     ${lado ? `<p class="reloj-lado">${esc(lado)}</p>` : ""}
     ${vez ? `<p class="reloj-vez">${vez}</p>` : ""}`;
 
-  if (paso.tipo === "cuenta" || paso.tipo === "trabajo") {
+  if (paso.tipo === "trabajo" && ej.guiaRespiracion) {
+    mostrarEnSesion(`
+      <div class="pantalla-reloj">
+        <p class="reloj-ejercicio">${esc(ej.corto)}</p>
+        <p class="respiracion-texto" id="respiracion-texto" aria-live="polite"></p>
+        <div class="respiracion-zona">
+          <div class="respiracion-circulo" id="respiracion-circulo" aria-hidden="true"></div>
+          <p class="reloj-numero" id="reloj-numero"></p>
+        </div>
+        <button type="button" id="btn-pausa" class="btn-grande btn-accion">⏸️ PAUSA</button>
+        <button type="button" id="btn-termine" class="btn-grande btn-secundario-grande">✓ Terminé</button>
+        ${botonSaltarPrueba()}
+      </div>
+    `, { tema: "tema-trabajo" });
+  } else if (paso.tipo === "cuenta" || paso.tipo === "trabajo") {
     mostrarEnSesion(`
       <div class="pantalla-reloj">
         ${cabecera}
@@ -624,8 +676,8 @@ function reanudar() {
   pantallaPaso(reloj.pasos[reloj.k]);
 }
 
-// La usan también los videos: si el temporizador estaba corriendo, se pausa mientras se ve.
-export function pausarSiCorre() {
+// Si el temporizador estaba corriendo, se pausa mientras se ve un video.
+function pausarSiCorre() {
   if (reloj && reloj.pausaRestante === null) {
     pausar();
     return true;

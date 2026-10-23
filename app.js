@@ -8,6 +8,7 @@ import {
   avanceTrasSesion,
 } from "./progreso-plan.js?v=2";
 import { configurarElita, mostrarInicio, renderInicio, estaEnSesion, quitarAjustes } from "./elita.js?v=2";
+import { configurarVideos } from "./videos.js?v=2";
 
 // --- Sincronización en la nube (Firebase Firestore) ---
 // Todo esto corre en segundo plano sin bloquear el arranque de la app: si no
@@ -1042,24 +1043,6 @@ function renderHistorial() {
   });
 }
 
-// --- Video guía ---
-function abrirVideo(ruta, nombre) {
-  const video = document.getElementById("video-guia");
-  document.getElementById("video-titulo").textContent = nombre;
-  video.src = ruta;
-  document.getElementById("video-overlay").hidden = false;
-  video.play().catch(() => {});
-}
-
-function cerrarVideo() {
-  const video = document.getElementById("video-guia");
-  video.pause();
-  video.src = "";
-  document.getElementById("video-overlay").hidden = true;
-}
-
-document.getElementById("cerrar-video").addEventListener("click", cerrarVideo);
-
 // --- Versículo del día ---
 document.getElementById("cerrar-versiculo").addEventListener("click", () => {
   document.getElementById("versiculo-overlay").hidden = true;
@@ -1087,6 +1070,7 @@ if (MODO_PRUEBA) {
   };
 }
 
+configurarVideos();
 configurarElita({
   obtenerPlan: () => plan,
   actualizarPlan,
@@ -1094,7 +1078,6 @@ configurarElita({
   hoyISO,
   mostrarInicioElita,
   mostrarProgreso: mostrarProgresoElita,
-  abrirVideo,
   modoPrueba: MODO_PRUEBA,
 });
 
