@@ -19,12 +19,14 @@ import { mostrarDialogo, confirmar } from "./dialogo.js?v=2";
 import { abrirVideos, videosDelEjercicio } from "./videos.js?v=2";
 import { diagramaPies } from "./dibujos.js?v=2";
 
-// Lo que viene de app.js: { obtenerPlan, actualizarPlan, guardarSesion, hoyISO, mostrarProgreso, modoPrueba }
+// Lo que viene de app.js: { obtenerPlan, actualizarPlan, guardarSesion, hoyISO, mostrarInicioElita,
+// mostrarProgreso, modoPrueba, idDatos }
 let dep = null;
 // En modo prueba (?prueba=1) todos los tiempos se dividen por 10.
 let factor = 1;
 
-const CLAVE_EN_CURSO = "mis-ejercicios-sesion-en-curso-elita";
+// Sesión a medias guardada en el celular (con otra clave en modo prueba).
+let CLAVE_EN_CURSO = "mis-ejercicios-sesion-en-curso-elita";
 
 const AVISO_JUAN_ANTES = "Hola Juan, hoy no me siento bien y no hice los ejercicios. — Elita";
 const AVISO_JUAN_DURANTE = "Hola Juan, me sentí mal mientras hacía los ejercicios y paré. — Elita";
@@ -93,6 +95,7 @@ function hoy() {
 export function configurarElita(dependencias) {
   dep = dependencias;
   factor = dep.modoPrueba ? 0.1 : 1;
+  CLAVE_EN_CURSO = `mis-ejercicios-sesion-en-curso-${dep.idDatos}`;
   $("btn-me-siento-mal").addEventListener("click", meSientoMal);
   document.addEventListener("visibilitychange", () => {
     if (!sesion) return;

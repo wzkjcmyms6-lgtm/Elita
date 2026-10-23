@@ -9,6 +9,14 @@ import {
 } from "./progreso-plan.js?v=2";
 import { configurarElita, mostrarInicio, renderInicio, estaEnSesion, quitarAjustes } from "./elita.js?v=2";
 import { configurarVideos } from "./videos.js?v=2";
+import { confirmar } from "./dialogo.js?v=2";
+
+// --- Modo prueba (?prueba=1) ---
+// Los tiempos van 10 veces más rápido y todo se guarda aparte: en "progreso/elita-prueba"
+// y en otras claves del celular. Así se puede probar en el sitio publicado sin tocar
+// los datos de Elita.
+const MODO_PRUEBA = new URLSearchParams(location.search).get("prueba") === "1";
+const ID_DATOS = MODO_PRUEBA ? "elita-prueba" : "elita";
 
 // --- Sincronización en la nube (Firebase Firestore) ---
 // Todo esto corre en segundo plano sin bloquear el arranque de la app: si no
@@ -25,6 +33,9 @@ let firestoreDb = null;
 let firestoreSetDoc = null;
 let firestoreRunTransaction = null;
 let firestoreDeleteField = null;
+let firestoreDeleteDoc = null;
+// Mientras se borran los datos de prueba no se escucha ni se escribe la nube.
+let ignorarNube = false;
 // Hasta recibir lo que hay en la nube no se escribe el doc viejo completo: en un
 // celular nuevo (sin datos guardados) eso borraría el historial de la nube.
 let docElitaRecibido = false;
@@ -33,7 +44,7 @@ let planRecibido = false;
 (async () => {
   try {
     const { initializeApp } = await import("https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js");
-    const { initializeFirestore, persistentLocalCache, doc, setDoc, onSnapshot, runTransaction, deleteField } = await import(
+    const { initializeFirestore, persistentLocalCache, doc, setDoc, onSnapshot, runTransaction, deleteField, deleteDoc } = await import(
       "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js"
     );
 
@@ -48,12 +59,13 @@ let planRecibido = false;
 
     const firebaseApp = initializeApp(firebaseConfig);
     const db = initializeFirestore(firebaseApp, { localCache: persistentLocalCache() });
-    docElita = doc(db, "progreso", "elita");
-    docPlan = doc(db, "progreso", "elita-plan");
+    docElita = doc(db, "progreso", ID_DATOS);
+    docPlan = doc(db, "progreso", `${ID_DATOS}-plan`);
     firestoreDb = db;
     firestoreSetDoc = setDoc;
     firestoreRunTransaction = runTransaction;
     firestoreDeleteField = deleteField;
+    firestoreDeleteDoc = deleteDoc;
 
     onSnapshot(docElita, recibirDocViejo, () => {});
     onSnapshot(docPlan, recibirPlan, () => {});
@@ -65,13 +77,14 @@ let planRecibido = false;
 })();
 
 function sincronizarANube() {
-  if (!docElita || !firestoreSetDoc || !docElitaRecibido) return;
+  if (!docElita || !firestoreSetDoc || !docElitaRecibido || ignorarNube) return;
   // Sin merge: siempre mandamos el estado local completo, así una eliminación
   // (por ejemplo, borrar la sesión de un día) también se refleja en la nube.
   firestoreSetDoc(docElita, { semanas, semanaActual, registro, cronometros }).catch(() => {});
 }
 
 function recibirDocViejo(snap) {
+  if (ignorarNube) return;
   // Un "no existe" sacado de la caché del celular no dice nada: hay que esperar a la nube.
   if (!snap.exists() && snap.metadata.fromCache) return;
   const primeraVez = !docElitaRecibido;
@@ -106,21 +119,21 @@ function aplicarDatosRemotos(datos) {
       semanas[1] = semanas[1].filter((ej) => !ESTIRAMIENTO_ANTERIOR.includes(ej.nombre)).concat(estiramientoFinalSemana1());
       migrado = true;
     }
-    try { localStorage.setItem(`mis-ejercicios-datos-${ID_ELITA}`, JSON.stringify(semanas)); } catch (e) {}
+    try { localStorage.setItem(`mis-ejercicios-datos-${ID_DATOS}`, JSON.stringify(semanas)); } catch (e) {}
     if (migrado) sincronizarANube();
   }
   if (datos.semanaActual) {
     semanaActual = datos.semanaActual;
-    try { localStorage.setItem(`mis-ejercicios-semana-actual-${ID_ELITA}`, String(semanaActual)); } catch (e) {}
+    try { localStorage.setItem(`mis-ejercicios-semana-actual-${ID_DATOS}`, String(semanaActual)); } catch (e) {}
   }
   if (datos.registro) {
     registro = datos.registro;
-    try { localStorage.setItem(`mis-ejercicios-registro-${ID_ELITA}`, JSON.stringify(registro)); } catch (e) {}
+    try { localStorage.setItem(`mis-ejercicios-registro-${ID_DATOS}`, JSON.stringify(registro)); } catch (e) {}
   }
   if (datos.cronometros) {
     cronometros = datos.cronometros;
     Object.keys(cronometros).forEach((iso) => { cronometros[iso] = normalizarCronometro(cronometros[iso]); });
-    try { localStorage.setItem(`mis-ejercicios-cronometro-${ID_ELITA}`, JSON.stringify(cronometros)); } catch (e) {}
+    try { localStorage.setItem(`mis-ejercicios-cronometro-${ID_DATOS}`, JSON.stringify(cronometros)); } catch (e) {}
   }
 
   if (alinearDocViejoConPlan()) sincronizarANube();
@@ -140,10 +153,10 @@ function refrescarVistas() {
 // --- Plan nuevo (doc "progreso/elita-plan") ---
 // Cada cambio es un parche que se aplica acá, se guarda en el celular y se manda con merge.
 // Si todavía no hay conexión con la nube, el parche queda en cola y se manda después.
-const CLAVE_PLAN = "mis-ejercicios-plan-elita";
-const CLAVE_PLAN_PENDIENTES = "mis-ejercicios-plan-pendientes-elita";
-const CLAVE_PLAN_PROVISIONAL = "mis-ejercicios-plan-provisional-elita";
-const CLAVE_FECHAS_PENDIENTES = "mis-ejercicios-fechas-pendientes-elita";
+const CLAVE_PLAN = `mis-ejercicios-plan-${ID_DATOS}`;
+const CLAVE_PLAN_PENDIENTES = `mis-ejercicios-plan-pendientes-${ID_DATOS}`;
+const CLAVE_PLAN_PROVISIONAL = `mis-ejercicios-plan-provisional-${ID_DATOS}`;
+const CLAVE_FECHAS_PENDIENTES = `mis-ejercicios-fechas-pendientes-${ID_DATOS}`;
 
 function leerJSON(clave, porDefecto) {
   try {
@@ -199,6 +212,7 @@ function paraFirestore(valor) {
 }
 
 function enviarParche(parche) {
+  if (ignorarNube) return;
   firestoreSetDoc(docPlan, paraFirestore(parche), { merge: true }).catch(() => {});
 }
 
@@ -210,6 +224,7 @@ function actualizarPlan(parche) {
 }
 
 function recibirPlan(snap) {
+  if (ignorarNube) return;
   if (!snap.exists() && snap.metadata.fromCache) return;
   const datos = snap.exists() ? snap.data() : null;
   if (!datos || !datos.planVersion) {
@@ -297,10 +312,10 @@ function alinearDocViejoConPlan() {
 
 function guardarDocViejoLocal() {
   try {
-    localStorage.setItem(`mis-ejercicios-datos-${ID_ELITA}`, JSON.stringify(semanas));
-    localStorage.setItem(`mis-ejercicios-semana-actual-${ID_ELITA}`, String(semanaActual));
-    localStorage.setItem(`mis-ejercicios-registro-${ID_ELITA}`, JSON.stringify(registro));
-    localStorage.setItem(`mis-ejercicios-cronometro-${ID_ELITA}`, JSON.stringify(cronometros));
+    localStorage.setItem(`mis-ejercicios-datos-${ID_DATOS}`, JSON.stringify(semanas));
+    localStorage.setItem(`mis-ejercicios-semana-actual-${ID_DATOS}`, String(semanaActual));
+    localStorage.setItem(`mis-ejercicios-registro-${ID_DATOS}`, JSON.stringify(registro));
+    localStorage.setItem(`mis-ejercicios-cronometro-${ID_DATOS}`, JSON.stringify(cronometros));
   } catch (e) {}
 }
 
@@ -409,7 +424,7 @@ function versiculoDeHoy() {
 
 function mostrarVersiculoSiCorresponde() {
   const hoy = hoyISO();
-  const clave = `mis-ejercicios-versiculo-visto-${ID_ELITA}`;
+  const clave = `mis-ejercicios-versiculo-visto-${ID_DATOS}`;
   let visto = null;
   try { visto = localStorage.getItem(clave); } catch (e) {}
   if (visto === hoy) return;
@@ -580,7 +595,7 @@ function cargarRegistroDe(perfilId) {
 }
 
 function guardarRegistro(registro) {
-  localStorage.setItem(`mis-ejercicios-registro-${perfilActivo.id}`, JSON.stringify(registro));
+  localStorage.setItem(`mis-ejercicios-registro-${ID_DATOS}`, JSON.stringify(registro));
   sincronizarANube();
 }
 
@@ -592,18 +607,18 @@ function cargarCronometrosDe(perfilId) {
 }
 
 function guardarCronometros(cronometros) {
-  localStorage.setItem(`mis-ejercicios-cronometro-${perfilActivo.id}`, JSON.stringify(cronometros));
+  localStorage.setItem(`mis-ejercicios-cronometro-${ID_DATOS}`, JSON.stringify(cronometros));
   sincronizarANube();
 }
 
 let perfiles = cargarPerfiles();
 let perfilActivo = null;
 // Datos de Elita: se cargan al abrir la página (los usan Elita, Juan y la sincronización).
-const habiaRutinaGuardada = leerJSON(`mis-ejercicios-datos-${ID_ELITA}`, null) !== null;
-let semanas = cargarSemanasDe(ID_ELITA);
-let semanaActual = cargarSemanaActualDe(ID_ELITA);
-let registro = cargarRegistroDe(ID_ELITA);
-let cronometros = cargarCronometrosDe(ID_ELITA);
+const habiaRutinaGuardada = leerJSON(`mis-ejercicios-datos-${ID_DATOS}`, null) !== null;
+let semanas = cargarSemanasDe(ID_DATOS);
+let semanaActual = cargarSemanaActualDe(ID_DATOS);
+let registro = cargarRegistroDe(ID_DATOS);
+let cronometros = cargarCronometrosDe(ID_DATOS);
 let mesVisible = new Date();
 
 // Plan nuevo: el guardado en el celular o, la primera vez, uno provisional que después se
@@ -1059,9 +1074,26 @@ document.getElementById("exportar-historial-btn").addEventListener("click", () =
   window.print();
 });
 
-// --- Modo prueba (?prueba=1): acceso a los datos desde la consola o desde pruebas automáticas ---
-const MODO_PRUEBA = new URLSearchParams(location.search).get("prueba") === "1";
+// --- Modo prueba: aviso, borrar los datos de prueba y acceso desde pruebas automáticas ---
+async function borrarDatosDePrueba() {
+  if (!MODO_PRUEBA || ID_DATOS === ID_ELITA) return; // nunca los datos de Elita
+  if (!(await confirmar("¿Borrar los datos de prueba?", "Los datos de Elita no se tocan.", "SÍ, BORRAR", "NO"))) return;
+  ignorarNube = true;
+  if (firestoreDeleteDoc && docPlan && docElita) {
+    const espera = new Promise((resolve) => setTimeout(resolve, 4000)); // sin internet no se queda colgado
+    await Promise.race([Promise.all([firestoreDeleteDoc(docPlan), firestoreDeleteDoc(docElita)]).catch(() => {}), espera]);
+  }
+  Object.keys(localStorage)
+    .filter((k) => k.startsWith("mis-ejercicios-") && k.endsWith(`-${ID_DATOS}`))
+    .forEach((k) => localStorage.removeItem(k));
+  location.reload();
+}
+
 if (MODO_PRUEBA) {
+  document.body.classList.add("modo-prueba");
+  document.getElementById("zona-prueba").hidden = false;
+  document.getElementById("borrar-datos-prueba").addEventListener("click", borrarDatosDePrueba);
+
   window.elitaPrueba = {
     plan: () => plan,
     docViejo: () => ({ semanas, semanaActual, registro, cronometros }),
@@ -1079,6 +1111,7 @@ configurarElita({
   mostrarInicioElita,
   mostrarProgreso: mostrarProgresoElita,
   modoPrueba: MODO_PRUEBA,
+  idDatos: ID_DATOS,
 });
 
 // --- Inicio ---
