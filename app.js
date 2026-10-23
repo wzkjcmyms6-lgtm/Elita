@@ -1,13 +1,37 @@
+import { semanasCompatibles } from "./plan-retina.js?v=2";
+import {
+  BORRAR,
+  crearPlanInicial,
+  normalizarPlan,
+  nombresDeSemanasViejas,
+  aplicarParche,
+  avanceTrasSesion,
+} from "./progreso-plan.js?v=2";
+
 // --- Sincronización en la nube (Firebase Firestore) ---
 // Todo esto corre en segundo plano sin bloquear el arranque de la app: si no
 // hay internet o falla la carga, la app sigue funcionando solo con localStorage.
+// Hay dos docs:
+// - "progreso/elita": el formato de siempre { semanas, semanaActual, registro, cronometros }.
+//   Se escribe completo (sin merge), igual que la versión anterior de la app, así que
+//   no se le agregan campos nuevos: un celular con la versión vieja los borraría.
+// - "progreso/elita-plan": todo lo del plan nuevo (sesiones, ajustes, semana del plan).
+//   Se escribe por partes con merge, así nunca pisa lo que escribió otro dispositivo.
 let docElita = null;
+let docPlan = null;
+let firestoreDb = null;
 let firestoreSetDoc = null;
+let firestoreRunTransaction = null;
+let firestoreDeleteField = null;
+// Hasta recibir lo que hay en la nube no se escribe el doc viejo completo: en un
+// celular nuevo (sin datos guardados) eso borraría el historial de la nube.
+let docElitaRecibido = false;
+let planRecibido = false;
 
 (async () => {
   try {
     const { initializeApp } = await import("https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js");
-    const { initializeFirestore, persistentLocalCache, doc, setDoc, onSnapshot } = await import(
+    const { initializeFirestore, persistentLocalCache, doc, setDoc, onSnapshot, runTransaction, deleteField } = await import(
       "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js"
     );
 
@@ -23,24 +47,52 @@ let firestoreSetDoc = null;
     const firebaseApp = initializeApp(firebaseConfig);
     const db = initializeFirestore(firebaseApp, { localCache: persistentLocalCache() });
     docElita = doc(db, "progreso", "elita");
+    docPlan = doc(db, "progreso", "elita-plan");
+    firestoreDb = db;
     firestoreSetDoc = setDoc;
+    firestoreRunTransaction = runTransaction;
+    firestoreDeleteField = deleteField;
 
-    onSnapshot(
-      docElita,
-      (snap) => { if (snap.exists()) aplicarDatosRemotos(snap.data()); },
-      () => {}
-    );
+    onSnapshot(docElita, recibirDocViejo, () => {});
+    onSnapshot(docPlan, recibirPlan, () => {});
   } catch (e) {
     docElita = null;
+    docPlan = null;
     firestoreSetDoc = null;
   }
 })();
 
 function sincronizarANube() {
-  if (!docElita || !firestoreSetDoc) return;
+  if (!docElita || !firestoreSetDoc || !docElitaRecibido) return;
   // Sin merge: siempre mandamos el estado local completo, así una eliminación
   // (por ejemplo, borrar la sesión de un día) también se refleja en la nube.
   firestoreSetDoc(docElita, { semanas, semanaActual, registro, cronometros }).catch(() => {});
+}
+
+function recibirDocViejo(snap) {
+  // Un "no existe" sacado de la caché del celular no dice nada: hay que esperar a la nube.
+  if (!snap.exists() && snap.metadata.fromCache) return;
+  const primeraVez = !docElitaRecibido;
+  docElitaRecibido = true;
+  if (!primeraVez) {
+    if (snap.exists()) aplicarDatosRemotos(snap.data());
+    return;
+  }
+  // Días que se guardaron en este celular antes de poder hablar con la nube: se conservan.
+  const fechasLocales = cargarFechasPendientes();
+  const registroLocal = registro;
+  const cronometrosLocal = cronometros;
+  if (snap.exists()) aplicarDatosRemotos(snap.data());
+  fechasLocales.forEach((iso) => {
+    if (registroLocal[iso]) registro[iso] = registroLocal[iso];
+    if (cronometrosLocal[iso]) cronometros[iso] = cronometrosLocal[iso];
+  });
+  guardarFechasPendientes([]);
+  if (!snap.exists() || fechasLocales.length > 0) {
+    guardarDocViejoLocal();
+    sincronizarANube();
+    refrescarVistas();
+  }
 }
 
 function aplicarDatosRemotos(datos) {
@@ -69,6 +121,11 @@ function aplicarDatosRemotos(datos) {
     try { localStorage.setItem(`mis-ejercicios-cronometro-${ID_ELITA}`, JSON.stringify(cronometros)); } catch (e) {}
   }
 
+  if (alinearDocViejoConPlan()) sincronizarANube();
+  refrescarVistas();
+}
+
+function refrescarVistas() {
   if (perfilActivo && perfilActivo.id === ID_ELITA && !document.getElementById("app-contenido").hidden) {
     renderTodo();
   }
@@ -76,6 +133,197 @@ function aplicarDatosRemotos(datos) {
     const tabJuanActivo = document.querySelector("#app-juan .nav-btn.active")?.dataset.tabJuan || "calendario";
     irATabJuan(tabJuanActivo);
   }
+}
+
+// --- Plan nuevo (doc "progreso/elita-plan") ---
+// Cada cambio es un parche que se aplica acá, se guarda en el celular y se manda con merge.
+// Si todavía no hay conexión con la nube, el parche queda en cola y se manda después.
+const CLAVE_PLAN = "mis-ejercicios-plan-elita";
+const CLAVE_PLAN_PENDIENTES = "mis-ejercicios-plan-pendientes-elita";
+const CLAVE_PLAN_PROVISIONAL = "mis-ejercicios-plan-provisional-elita";
+const CLAVE_FECHAS_PENDIENTES = "mis-ejercicios-fechas-pendientes-elita";
+
+function leerJSON(clave, porDefecto) {
+  try {
+    const datos = localStorage.getItem(clave);
+    return datos ? JSON.parse(datos) : porDefecto;
+  } catch (e) {
+    return porDefecto;
+  }
+}
+
+function escribirJSON(clave, valor) {
+  try { localStorage.setItem(clave, JSON.stringify(valor)); } catch (e) {}
+}
+
+function guardarPlanLocal() {
+  escribirJSON(CLAVE_PLAN, plan);
+}
+
+function cargarParchesPendientes() {
+  return leerJSON(CLAVE_PLAN_PENDIENTES, []);
+}
+
+function guardarParchesPendientes(lista) {
+  escribirJSON(CLAVE_PLAN_PENDIENTES, lista);
+}
+
+function cargarFechasPendientes() {
+  return leerJSON(CLAVE_FECHAS_PENDIENTES, []);
+}
+
+function guardarFechasPendientes(lista) {
+  escribirJSON(CLAVE_FECHAS_PENDIENTES, lista);
+}
+
+function marcarPlanProvisional(valor) {
+  planProvisional = valor;
+  try {
+    if (valor) localStorage.setItem(CLAVE_PLAN_PROVISIONAL, "1");
+    else localStorage.removeItem(CLAVE_PLAN_PROVISIONAL);
+  } catch (e) {}
+}
+
+// Firestore no acepta la marca BORRAR ni valores undefined.
+function paraFirestore(valor) {
+  if (valor === BORRAR) return firestoreDeleteField();
+  if (Array.isArray(valor)) return valor.map(paraFirestore);
+  if (valor !== null && typeof valor === "object") {
+    const resultado = {};
+    Object.entries(valor).forEach(([k, v]) => { if (v !== undefined) resultado[k] = paraFirestore(v); });
+    return resultado;
+  }
+  return valor;
+}
+
+function enviarParche(parche) {
+  firestoreSetDoc(docPlan, paraFirestore(parche), { merge: true }).catch(() => {});
+}
+
+function actualizarPlan(parche) {
+  plan = aplicarParche(plan, parche);
+  guardarPlanLocal();
+  if (docPlan && planRecibido) enviarParche(parche);
+  else guardarParchesPendientes([...cargarParchesPendientes(), parche]);
+}
+
+function recibirPlan(snap) {
+  if (!snap.exists() && snap.metadata.fromCache) return;
+  const datos = snap.exists() ? snap.data() : null;
+  if (!datos || !datos.planVersion) {
+    // La nube todavía no tiene el plan nuevo: se migra una sola vez.
+    if (!snap.metadata.fromCache) migrarEnLaNube();
+    return;
+  }
+  let remoto = normalizarPlan(datos, hoyISO());
+  const pendientes = cargarParchesPendientes();
+  if (pendientes.length > 0) {
+    // Si el plan de este celular era provisional (se creó sin conexión) y otro dispositivo
+    // ya había migrado, de lo hecho acá solo se suben las sesiones: la semana y la fecha
+    // de inicio que valen son las de la nube.
+    pendientes
+      .map((p) => (planProvisional ? (p.sesiones ? { sesiones: p.sesiones } : null) : p))
+      .filter(Boolean)
+      .forEach((p) => {
+        remoto = aplicarParche(remoto, p);
+        enviarParche(p);
+      });
+    guardarParchesPendientes([]);
+  }
+  marcarPlanProvisional(false);
+  planRecibido = true;
+  plan = remoto;
+  guardarPlanLocal();
+  if (alinearDocViejoConPlan()) {
+    guardarDocViejoLocal();
+    sincronizarANube();
+  }
+  refrescarVistas();
+}
+
+// Migración al plan nuevo, una sola vez y en transacción: si dos celulares la intentan a la
+// vez, solo uno la escribe. No toca "registro" ni "cronometros" del doc viejo.
+let migrando = false;
+
+async function migrarEnLaNube() {
+  if (migrando || !firestoreRunTransaction) return;
+  migrando = true;
+  try {
+    await firestoreRunTransaction(firestoreDb, async (t) => {
+      const snapPlan = await t.get(docPlan);
+      if (snapPlan.exists() && snapPlan.data().planVersion) return; // otro dispositivo ya migró
+      const snapViejo = await t.get(docElita);
+      const semanasNube = snapViejo.exists() ? snapViejo.data().semanas : null;
+      const nuevo = { ...plan, nombresAnteriores: { ...nombresDeSemanasViejas(semanasNube), ...plan.nombresAnteriores } };
+      t.set(docPlan, paraFirestore(nuevo), { merge: true });
+      t.set(docElita, { semanas: semanasCompatibles(), semanaActual: nuevo.semanaActual }, { merge: true });
+    });
+    // El plan completo de este celular (con lo que estaba en cola) ya quedó escrito.
+    guardarParchesPendientes([]);
+  } catch (e) {
+    // Sin conexión o en conflicto: se vuelve a intentar con la próxima noticia de la nube.
+  } finally {
+    migrando = false;
+  }
+}
+
+// El doc viejo refleja el plan: semanas con los ejercicios nuevos y la semana del plan.
+// Si un celular con la versión vieja lo cambió, se corrige. Devuelve true si cambió algo.
+function alinearDocViejoConPlan() {
+  if (planProvisional || !planRecibido) return false;
+  let cambio = false;
+  if (semanaActual !== plan.semanaActual) {
+    semanaActual = plan.semanaActual;
+    cambio = true;
+  }
+  const compatibles = semanasCompatibles();
+  const mismosIds = [1, 2, 3, 4].every(
+    (n) => (semanas[n] || []).map((ej) => ej.id).join() === compatibles[n].map((ej) => ej.id).join()
+  );
+  if (!mismosIds) {
+    const nombresNuevos = nombresDeSemanasViejas(semanas);
+    const faltan = Object.keys(nombresNuevos).filter((id) => !plan.nombresAnteriores[id]);
+    if (faltan.length > 0) {
+      actualizarPlan({ nombresAnteriores: Object.fromEntries(faltan.map((id) => [id, nombresNuevos[id]])) });
+    }
+    semanas = compatibles;
+    cambio = true;
+  }
+  if (cambio) guardarDocViejoLocal();
+  return cambio;
+}
+
+function guardarDocViejoLocal() {
+  try {
+    localStorage.setItem(`mis-ejercicios-datos-${ID_ELITA}`, JSON.stringify(semanas));
+    localStorage.setItem(`mis-ejercicios-semana-actual-${ID_ELITA}`, String(semanaActual));
+    localStorage.setItem(`mis-ejercicios-registro-${ID_ELITA}`, JSON.stringify(registro));
+    localStorage.setItem(`mis-ejercicios-cronometro-${ID_ELITA}`, JSON.stringify(cronometros));
+  } catch (e) {}
+}
+
+// Al cerrar una sesión del plan: se guarda en "sesiones" y, para que el calendario y el
+// historial de siempre sigan andando, también en registro[fecha] y cronometros[fecha].
+// Devuelve el aviso de avance de semana, si corresponde ({ tipo: "semana" | "mes", ... }).
+function guardarSesion(fecha, sesion) {
+  actualizarPlan({ sesiones: { [fecha]: sesion } });
+  if (sesion.estado !== "malestar" && sesion.hechos.length > 0) {
+    registro[fecha] = [...sesion.hechos];
+    cronometros[fecha] = { acumuladoMs: sesion.duracionMs, segmentoInicio: null, ultimaActividad: sesion.fin, fin: sesion.fin };
+    guardarDocViejoLocal();
+    if (docElitaRecibido) sincronizarANube();
+    else guardarFechasPendientes([...new Set([...cargarFechasPendientes(), fecha])]);
+  }
+  return revisarAvance(fecha);
+}
+
+function revisarAvance(hoy = hoyISO()) {
+  const { parche, evento } = avanceTrasSesion(plan, hoy);
+  if (parche) {
+    actualizarPlan(parche);
+    if (alinearDocViejoConPlan()) sincronizarANube();
+  }
+  return evento;
 }
 
 // --- Configuración fija ---
@@ -325,11 +573,6 @@ function cargarSemanaActualDe(perfilId) {
   return n >= 1 && n <= 4 ? n : 1;
 }
 
-function guardarSemanaActual() {
-  localStorage.setItem(`mis-ejercicios-semana-actual-${perfilActivo.id}`, String(semanaActual));
-  sincronizarANube();
-}
-
 function todosLosEjercicios() {
   return [1, 2, 3, 4].flatMap((n) => semanas[n] || []);
 }
@@ -358,11 +601,29 @@ function guardarCronometros(cronometros) {
 
 let perfiles = cargarPerfiles();
 let perfilActivo = null;
-let semanas = { 1: [], 2: [], 3: [], 4: [] };
-let semanaActual = 1;
-let registro = {};
-let cronometros = {};
+// Datos de Elita: se cargan al abrir la página (los usan Elita, Juan y la sincronización).
+const habiaRutinaGuardada = leerJSON(`mis-ejercicios-datos-${ID_ELITA}`, null) !== null;
+let semanas = cargarSemanasDe(ID_ELITA);
+let semanaActual = cargarSemanaActualDe(ID_ELITA);
+let registro = cargarRegistroDe(ID_ELITA);
+let cronometros = cargarCronometrosDe(ID_ELITA);
 let mesVisible = new Date();
+
+// Plan nuevo: el guardado en el celular o, la primera vez, uno provisional que después se
+// confirma (migración) o se reemplaza por el que ya esté en la nube.
+let plan = leerJSON(CLAVE_PLAN, null);
+let planProvisional = leerJSON(CLAVE_PLAN_PROVISIONAL, 0) === 1;
+if (plan) {
+  plan = normalizarPlan(plan, hoyISO());
+  if (!planProvisional) semanaActual = plan.semanaActual;
+} else {
+  plan = crearPlanInicial(hoyISO(), habiaRutinaGuardada ? semanas : null);
+  marcarPlanProvisional(true);
+  guardarPlanLocal();
+  semanas = semanasCompatibles();
+  semanaActual = 1;
+  guardarDocViejoLocal();
+}
 
 // --- Íconos y colores por ejercicio ---
 const ICONOS_POR_PALABRA = [
@@ -565,11 +826,6 @@ function iniciarApp(id) {
     mostrarPantallaPerfil();
     return;
   }
-  semanas = cargarSemanasDe(id);
-  semanaActual = cargarSemanaActualDe(id);
-  registro = cargarRegistroDe(id);
-  cronometros = cargarCronometrosDe(id);
-  sincronizarANube();
   mesVisible = new Date();
   document.getElementById("pantalla-perfil").hidden = true;
   document.getElementById("pantalla-clave").hidden = true;
@@ -715,23 +971,6 @@ function diaCompletoParaLista(lista, hechosEseDia) {
 
 function contarDiasCompletosSemana(lista) {
   return Object.values(registro).filter((idsDelDia) => diaCompletoParaLista(lista, idsDelDia)).length;
-}
-
-function verificarProgresionSemana() {
-  const lista = semanas[semanaActual] || [];
-  if (lista.length === 0) return;
-  if (contarDiasCompletosSemana(lista) < META_DIAS_SEMANA) return;
-
-  if (semanaActual < 4) {
-    const completada = semanaActual;
-    semanaActual++;
-    guardarSemanaActual();
-    alert(`¡Felicitaciones! Completaste la Semana ${completada}. Ahora te toca la Semana ${semanaActual} 💪`);
-  } else {
-    semanaActual = 1;
-    guardarSemanaActual();
-    alert("¡Felicitaciones! Completaste las 4 semanas de rutina. ¡Volvés a empezar en la Semana 1! 🎉");
-  }
 }
 
 // --- Cronómetro de entrenamiento (desde el primer ejercicio marcado hasta completar el día) ---
@@ -903,7 +1142,6 @@ function toggleCompletado(id) {
   }
   guardarRegistro(registro);
   verificarCronometroHoy(hechosHoy);
-  verificarProgresionSemana();
   renderTodo();
   return marcada;
 }
@@ -1179,9 +1417,6 @@ function renderTodo() {
 // --- App de Juan Manolo (solo lectura del progreso de Elita) ---
 function iniciarJuan() {
   perfilActivo = asegurarPerfilElita();
-  semanas = cargarSemanasDe(ID_ELITA);
-  registro = cargarRegistroDe(ID_ELITA);
-  cronometros = cargarCronometrosDe(ID_ELITA);
   mesVisible = new Date();
 
   document.getElementById("pantalla-perfil").hidden = true;
@@ -1227,6 +1462,7 @@ document.getElementById("jn-mes-siguiente").addEventListener("click", () => {
 
 function eliminarSesionDia(iso, fechaTexto) {
   if (!confirm(`¿Eliminar la sesión del ${fechaTexto}? Se borran los ejercicios marcados y el tiempo de ese día.`)) return;
+  if (plan.sesiones[iso]) actualizarPlan({ sesiones: { [iso]: BORRAR } });
   delete registro[iso];
   delete cronometros[iso];
   guardarRegistro(registro);
@@ -1418,6 +1654,17 @@ document.getElementById("exportar-historial-btn").addEventListener("click", () =
   });
   window.print();
 });
+
+// --- Modo prueba (?prueba=1): acceso a los datos desde la consola o desde pruebas automáticas ---
+const MODO_PRUEBA = new URLSearchParams(location.search).get("prueba") === "1";
+if (MODO_PRUEBA) {
+  window.elitaPrueba = {
+    plan: () => plan,
+    docViejo: () => ({ semanas, semanaActual, registro, cronometros }),
+    guardarSesion,
+    actualizarPlan,
+  };
+}
 
 // --- Inicio ---
 // Siempre se pide la clave al entrar o recargar la página; el progreso
